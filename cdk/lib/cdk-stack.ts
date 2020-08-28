@@ -10,28 +10,28 @@ export class TelemetryStack extends Stack {
     super(scope, id, props);
 
     // The code that defines your stack goes here
-    const stackParameter = new CfnParameter(this, "stack", {
+    const stackParameter = new CfnParameter(this, "tools-telemetry-stack", {
       type: "String",
       description: "Stack",
     });
 
-    const stageParameter = new CfnParameter(this, "stage", {
+    const stageParameter = new CfnParameter(this, "tools-telemetry-stage", {
       type: "String",
       description: "Stage",
     });
 
-    const loggingCertificateArn = new CfnParameter(
+    const telemetryCertificateArn = new CfnParameter(
       this,
-      "logging-certificate-arn",
+      "tools-telemetry-certificate-arn",
       {
         type: "String",
-        description: "ARN of ACM certificate for logging endpoint",
+        description: "ARN of ACM certificate for telemetry endpoint",
       }
     );
 
-    const loggingHostName = new CfnParameter(this, "logging-hostname", {
+    const telemetryHostName = new CfnParameter(this, "tools-telemetry-hostname", {
       type: "String",
-      description: "Hostname for logging endpoint",
+      description: "Hostname for telemetry endpoint",
     });
 
     const maxLogSize = new CfnParameter(this, "max-log-size", {
@@ -40,101 +40,97 @@ export class TelemetryStack extends Stack {
         "Maximum size (in bytes) of log data from an individual request",
     });
 
-    const loggingCertificate = acm.Certificate.fromCertificateArn(
+    const telemetryCertificate = acm.Certificate.fromCertificateArn(
       this,
-      "logging-certificate",
-      loggingCertificateArn.valueAsString
+      "tools-telemetry-certificate",
+      telemetryCertificateArn.valueAsString
     );
 
     const deployBucket = s3.Bucket.fromBucketName(
       this,
-      "editions-dist",
-      "editions-dist"
+      "composer-dist",
+      "composer-dist"
     );
-    const loggingFunction = () => {
-      const fn = new lambda.Function(this, `EditionsLogging`, {
-        functionName: `editions-logging-${stageParameter.valueAsString}`,
+
+    const telemetryFunction = () => {
+      const fn = new lambda.Function(this, `ToolsTelemetry`, {
+        functionName: `tools-telemetry-${stageParameter.valueAsString}`,
         runtime: lambda.Runtime.NODEJS_10_X,
         memorySize: 128,
-        timeout: Duration.seconds(1),
+        timeout: Duration.seconds(5),
         code: lambda.Code.bucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/logging/logging.zip`
+          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/tools-telemetry/tools-telemetry.zip`
         ),
         handler: "index.handler",
         environment: {
           STAGE: stageParameter.valueAsString,
           STACK: stackParameter.valueAsString,
-          APP: "editions-logging",
+          APP: "tools-telemetry",
           MAX_LOG_SIZE: maxLogSize.valueAsString,
           LOG_ENDPOINT_ENABLED: "true",
         },
       });
-      Tag.add(fn, "App", `editions-logging`);
+      Tag.add(fn, "App", `tools-telemetry`);
       Tag.add(fn, "Stage", stageParameter.valueAsString);
       Tag.add(fn, "Stack", stackParameter.valueAsString);
       return fn;
     };
 
-    const loggingBackend = loggingFunction();
+    const telemetryBackend = telemetryFunction();
 
-    const loggingApiPolicyStatement = new iam.PolicyStatement({
+    const telemetryApiPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["execute-api:Invoke"],
       resources: ["*"],
     });
-    loggingApiPolicyStatement.addAnyPrincipal();
+    telemetryApiPolicyStatement.addAnyPrincipal();
 
-    const loggingApi = new apigateway.LambdaRestApi(this, "editions-logging", {
-      handler: loggingBackend,
+    const telemetryApi = new apigateway.LambdaRestApi(this, "tools-telemetry", {
+      handler: telemetryBackend,
       endpointTypes: [apigateway.EndpointType.EDGE],
       policy: new iam.PolicyDocument({
-        statements: [loggingApiPolicyStatement],
+        statements: [telemetryApiPolicyStatement],
       }),
       defaultMethodOptions: {
         apiKeyRequired: false,
       },
     });
 
-    const usagePlan = new apigateway.UsagePlan(
-      this,
-      "editions-logging-usage-plan",
-      {
-        name: `editions-logging-usage-plan-${stageParameter.valueAsString}`,
-        apiStages: [
-          {
-            stage: loggingApi.deploymentStage,
-            api: loggingApi,
-          },
-        ],
-        // max of 5 million requests a day (100 log messages per user)
-        quota: {
-          period: apigateway.Period.DAY,
-          limit: 5000000,
-        },
-      }
-    );
+    // const usagePlan = new apigateway.UsagePlan(
+    //   this,
+    //   "tools-telemetry-usage-plan",
+    //   {
+    //     name: `tools-telemetry-usage-plan-${stageParameter.valueAsString}`,
+    //     apiStages: [
+    //       {
+    //         stage: telemetryApi.deploymentStage,
+    //         api: telemetryApi,
+    //       },
+    //     ],
+    //     // max of 50,000 requests a day
+    //     quota: {
+    //       period: apigateway.Period.DAY,
+    //       limit: 50000,
+    //     },
+    //   }
+    // );
 
-    const apiKey = new apigateway.ApiKey(this, `editions-logging-apikey`, {
-      apiKeyName: `editions-logging-${stageParameter.valueAsString}`,
-    });
-    usagePlan.addApiKey(apiKey);
-
-    const loggingDomainName = new apigateway.DomainName(
+    const telemetryDomainName = new apigateway.DomainName(
       this,
-      "logging-domain-name",
+      "tools-telemetry-domain-name",
       {
-        domainName: loggingHostName.valueAsString,
-        certificate: loggingCertificate,
+        domainName: telemetryHostName.valueAsString,
+        certificate: telemetryCertificate,
         endpointType: apigateway.EndpointType.EDGE,
       }
     );
 
-    loggingDomainName.addBasePathMapping(loggingApi, { basePath: "" });
+    telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-    new CfnOutput(this, "Logging-Api-Target-Hostname", {
+    new CfnOutput(this, "tools-telemetry-api-target-hostname", {
       description: "hostname",
-      value: `${loggingDomainName.domainNameAliasDomainName}`,
+      value: `${telemetryDomainName.domainNameAliasDomainName}`,
     });
   }
 }
