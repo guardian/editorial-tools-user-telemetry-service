@@ -57,7 +57,7 @@ export class TelemetryStack extends Stack {
         runtime: lambda.Runtime.NODEJS_10_X,
         memorySize: 128,
         timeout: Duration.seconds(1),
-        code: .Code.bucket(
+        code: lambda.Code.bucket(
           deployBucket,
           `${stackParameter.valueAsString}/${stageParameter.valueAsString}/logging/logging.zip`
         ),
