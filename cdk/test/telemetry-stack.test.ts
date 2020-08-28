@@ -1,13 +1,10 @@
-import { expect as expectCDK, matchTemplate, MatchStyle } from '@aws-cdk/assert';
 import * as cdk from '@aws-cdk/core';
-import Cdk = require('../lib/telemetry-stack');
+import { TelemetryStack } from '../lib/telemetry-stack';
 
-test('Empty Stack', () => {
+test('Stack runs without errors', () => {
     const app = new cdk.App();
     // WHEN
-    const stack = new Cdk.TelemetryStack(app, 'TelemetryTestStack');
+    const stack = new TelemetryStack(app, 'TelemetryTestStack');
     // THEN
-    expectCDK(stack).to(matchTemplate({
-      "Resources": {}
-    }, MatchStyle.EXACT))
+    expect(stack instanceof TelemetryStack).toBe(true)
 });
