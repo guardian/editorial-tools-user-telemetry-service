@@ -97,25 +97,6 @@ export class TelemetryStack extends Stack {
       },
     });
 
-    // const usagePlan = new apigateway.UsagePlan(
-    //   this,
-    //   "tools-telemetry-usage-plan",
-    //   {
-    //     name: `tools-telemetry-usage-plan-${stageParameter.valueAsString}`,
-    //     apiStages: [
-    //       {
-    //         stage: telemetryApi.deploymentStage,
-    //         api: telemetryApi,
-    //       },
-    //     ],
-    //     // max of 50,000 requests a day
-    //     quota: {
-    //       period: apigateway.Period.DAY,
-    //       limit: 50000,
-    //     },
-    //   }
-    // );
-
     const telemetryDomainName = new apigateway.DomainName(
       this,
       "tools-telemetry-domain-name",
