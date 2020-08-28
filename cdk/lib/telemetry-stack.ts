@@ -9,7 +9,10 @@ export class TelemetryStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
+    /**
+     * Parameters
+     */
+
     const stackParameter = new CfnParameter(this, "tools-telemetry-stack", {
       type: "String",
       description: "Stack",
@@ -40,11 +43,9 @@ export class TelemetryStack extends Stack {
         "Maximum size (in bytes) of log data from an individual request",
     });
 
-    const telemetryCertificate = acm.Certificate.fromCertificateArn(
-      this,
-      "tools-telemetry-certificate",
-      telemetryCertificateArn.valueAsString
-    );
+    /**
+     * Lambda
+     */
 
     const deployBucket = s3.Bucket.fromBucketName(
       this,
@@ -79,6 +80,10 @@ export class TelemetryStack extends Stack {
 
     const telemetryBackend = telemetryFunction();
 
+    /**
+     * API Gateway
+     */
+
     const telemetryApiPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["execute-api:Invoke"],
@@ -96,6 +101,14 @@ export class TelemetryStack extends Stack {
         apiKeyRequired: false,
       },
     });
+
+
+    const telemetryCertificate = acm.Certificate.fromCertificateArn(
+      this,
+      "tools-telemetry-certificate",
+      telemetryCertificateArn.valueAsString
+    );
+
 
     const telemetryDomainName = new apigateway.DomainName(
       this,
