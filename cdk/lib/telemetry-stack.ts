@@ -13,31 +13,31 @@ export class TelemetryStack extends Stack {
      * Parameters
      */
 
-    const stackParameter = new CfnParameter(this, "toolsTelemetryStack", {
+    const stackParameter = new CfnParameter(this, "Stack", {
       type: "String",
       description: "Stack",
     });
 
-    const stageParameter = new CfnParameter(this, "toolsTelemetryStage", {
+    const stageParameter = new CfnParameter(this, "Stage", {
       type: "String",
       description: "Stage",
     });
 
     const telemetryCertificateArn = new CfnParameter(
       this,
-      "toolsTelemetryCertificateArn",
+      "CertificateArn",
       {
         type: "String",
         description: "ARN of ACM certificate for telemetry endpoint",
       }
     );
 
-    const telemetryHostName = new CfnParameter(this, "toolsTelemetryHostname", {
+    const telemetryHostName = new CfnParameter(this, "Hostname", {
       type: "String",
       description: "Hostname for telemetry endpoint",
     });
 
-    const maxLogSize = new CfnParameter(this, "maxLogSize", {
+    const maxLogSize = new CfnParameter(this, "MaxLogSize", {
       type: "String",
       description:
         "Maximum size (in bytes) of log data from an individual request",
