@@ -3,7 +3,6 @@ regions: [eu-west-1]
 deployments:
     event-api-lambda:
         type: aws-lambda
-        dependencies: [cloudformation]
         parameters:
             prefixStack: false
             bucket: composer-dist
