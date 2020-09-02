@@ -1,4 +1,4 @@
-stacks: [composer]
+stacks: [flexible]
 regions: [eu-west-1]
 deployments:
     event-api-lambda:
