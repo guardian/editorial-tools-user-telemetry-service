@@ -26,14 +26,17 @@
     "validate": "cd ../.. && script/make validate-logging",
     "fix": "cd ../.. && script/make fix-logging",
     "test": "jest --coverage",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json"
   },
   "dependencies": {
     "@types/aws-lambda": "^8.10.31",
     "@types/jest": "^24.0.17",
+    "ajv": "^6.12.4",
     "aws-sdk": "2.507.0",
     "aws-serverless-express": "^3.3.6",
     "express": "^4.17.1",
-    "jest": "^24.8.0"
+    "jest": "^24.8.0",
+    "typescript-json-schema": "^0.43.0"
   }
 }
