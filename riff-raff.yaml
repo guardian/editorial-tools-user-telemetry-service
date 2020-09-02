@@ -1,0 +1,13 @@
+stacks: [composer]
+regions: [eu-west-1]
+
+deployments:
+    backend:
+        type: aws-lambda
+        dependencies: [cloudformation]
+        parameters:
+            prefixStack: false
+            bucket: composer-dist
+            fileName: event-api-lambda.zip
+            functionNames:
+                [event-api-lambda-]
