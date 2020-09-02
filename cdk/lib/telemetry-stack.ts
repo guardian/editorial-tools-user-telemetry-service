@@ -1,4 +1,13 @@
-import { Stack, Construct, StackProps, CfnOutput, Duration, Tag, CfnParameter, RemovalPolicy } from "@aws-cdk/core";
+import {
+  Stack,
+  Construct,
+  StackProps,
+  CfnOutput,
+  Duration,
+  Tag,
+  CfnParameter,
+  RemovalPolicy,
+} from "@aws-cdk/core";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as s3 from "@aws-cdk/aws-s3";
@@ -24,15 +33,6 @@ export class TelemetryStack extends Stack {
       description: "Stage",
     });
 
-    const telemetryCertificateArn = new CfnParameter(
-      this,
-      "CertificateArn",
-      {
-        type: "String",
-        description: "ARN of ACM certificate for telemetry endpoint",
-      }
-    );
-
     const telemetryHostName = new CfnParameter(this, "Hostname", {
       type: "String",
       description: "Hostname for telemetry endpoint",
@@ -48,14 +48,18 @@ export class TelemetryStack extends Stack {
      * S3 bucket – where our telemetry data is persisted
      */
 
-    const telemetryDataBucket = new Bucket(this, 'tools-telemetry-data-bucket', {
-      versioned: false,
-      bucketName: 'tools-telemetry-data',
-      encryption: BucketEncryption.KMS_MANAGED,
-      publicReadAccess: false,
-      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: RemovalPolicy.DESTROY
-    });
+    const telemetryDataBucket = new Bucket(
+      this,
+      "tools-telemetry-data-bucket",
+      {
+        versioned: false,
+        bucketName: "tools-telemetry-data",
+        encryption: BucketEncryption.KMS_MANAGED,
+        publicReadAccess: false,
+        blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+        removalPolicy: RemovalPolicy.DESTROY,
+      }
+    );
 
     /**
      * Lambda
@@ -75,7 +79,7 @@ export class TelemetryStack extends Stack {
         timeout: Duration.seconds(5),
         code: lambda.Code.bucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/tools-telemetry/tools-telemetry.zip`
+          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/tools-telemetry/event-api-lambda.zip`
         ),
         handler: "index.handler",
         environment: {
@@ -84,7 +88,7 @@ export class TelemetryStack extends Stack {
           APP: "tools-telemetry",
           MAX_LOG_SIZE: maxLogSize.valueAsString,
           LOG_ENDPOINT_ENABLED: "true",
-          TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName
+          TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
         },
       });
       Tag.add(fn, "App", `tools-telemetry`);
@@ -114,13 +118,17 @@ export class TelemetryStack extends Stack {
       }),
       defaultMethodOptions: {
         apiKeyRequired: false,
-      },
+      }
     });
 
-    const telemetryCertificate = new acm.Certificate(this, 'tools-telemetry-certificate', {
-      domainName: 'user-telemetry.gutools.co.uk',
-      validation: acm.CertificateValidation.fromDns(), // Records must be added manually
-    });
+    const telemetryCertificate = new acm.Certificate(
+      this,
+      "tools-telemetry-certificate",
+      {
+        domainName: telemetryHostName.valueAsString,
+        validation: acm.CertificateValidation.fromDns(),
+      }
+    );
 
     const telemetryDomainName = new apigateway.DomainName(
       this,
