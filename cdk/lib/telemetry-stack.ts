@@ -38,6 +38,15 @@ export class TelemetryStack extends Stack {
       description: "Hostname for telemetry endpoint",
     });
 
+    const telemetryCertificateArn = new CfnParameter(
+      this,
+      "CertificateArn",
+      {
+        type: "String",
+        description: "ARN of ACM certificate for telemetry endpoint",
+      }
+    );
+
     const maxLogSize = new CfnParameter(this, "MaxLogSize", {
       type: "String",
       description:
@@ -121,14 +130,12 @@ export class TelemetryStack extends Stack {
       }
     });
 
-    const telemetryCertificate = new acm.Certificate(
+    const telemetryCertificate = acm.Certificate.fromCertificateArn(
       this,
       "tools-telemetry-certificate",
-      {
-        domainName: telemetryHostName.valueAsString,
-        validation: acm.CertificateValidation.fromDns(),
-      }
+      telemetryCertificateArn.valueAsString
     );
+
 
     const telemetryDomainName = new apigateway.DomainName(
       this,
