@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "IUserTelemetryEvent": {
+            "properties": {
+                "app": {
+                    "type": "string"
+                },
+                "eventTime": {
+                    "type": "string"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "tags": {
+                    "additionalProperties": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean"
+                        ]
+                    },
+                    "type": "object"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": [
+                        "number",
+                        "boolean"
+                    ]
+                }
+            },
+            "type": "object"
+        }
+    },
+    "items": {
+        "$ref": "#/definitions/IUserTelemetryEvent"
+    },
+    "type": "array"
+}
+
