@@ -1,8 +1,7 @@
 stacks: [composer]
 regions: [eu-west-1]
-
 deployments:
-    backend:
+    event-api-lambda:
         type: aws-lambda
         dependencies: [cloudformation]
         parameters:

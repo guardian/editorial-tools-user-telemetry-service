@@ -1,0 +1,11 @@
+{
+  "projectName": "Editorial Tools::Telemetry Service event lambda",
+  "vcsURL": "https://github.com/guardian/tools-telemetry-service",
+  "actions": [
+    {
+      "action": "event-api-lambda",
+      "path": "dist/",
+      "compress": "zip"
+    }
+  ]
+}

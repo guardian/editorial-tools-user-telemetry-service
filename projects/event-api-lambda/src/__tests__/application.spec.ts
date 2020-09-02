@@ -15,5 +15,4 @@ describe('logging service', () => {
                 done()
             })
     });
-
 })
