@@ -117,13 +117,10 @@ export class TelemetryStack extends Stack {
       },
     });
 
-
-    const telemetryCertificate = acm.Certificate.fromCertificateArn(
-      this,
-      "tools-telemetry-certificate",
-      telemetryCertificateArn.valueAsString
-    );
-
+    const telemetryCertificate = new acm.Certificate(this, 'tools-telemetry-certificate', {
+      domainName: 'user-telemetry.gutools.co.uk',
+      validation: acm.CertificateValidation.fromDns(), // Records must be added manually
+    });
 
     const telemetryDomainName = new apigateway.DomainName(
       this,
