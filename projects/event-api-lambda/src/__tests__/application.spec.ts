@@ -5,7 +5,7 @@ import chaiHttp from 'chai-http'
 chai.use(chaiHttp)
 chai.should()
 
-describe('logging service', () => {
+describe('Event API lambda', () => {
     const testApp = createApp()
     it('should return 200 from healthcheck', done => {
         chai.request(testApp)
