@@ -72,14 +72,14 @@ export class TelemetryStack extends Stack {
     );
 
     const telemetryFunction = () => {
-      const fn = new lambda.Function(this, `ToolsTelemetry`, {
-        functionName: `tools-telemetry-${stageParameter.valueAsString}`,
+      const fn = new lambda.Function(this, `EventApiLambda`, {
+        functionName: `event-api-lambda-${stageParameter.valueAsString}`,
         runtime: lambda.Runtime.NODEJS_12_X,
         memorySize: 128,
         timeout: Duration.seconds(5),
         code: lambda.Code.bucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/tools-telemetry/event-api-lambda.zip`
+          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
         ),
         handler: "index.handler",
         environment: {
@@ -91,7 +91,7 @@ export class TelemetryStack extends Stack {
           TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
         },
       });
-      Tag.add(fn, "App", `tools-telemetry`);
+      Tag.add(fn, "App", "tools-telemetry");
       Tag.add(fn, "Stage", stageParameter.valueAsString);
       Tag.add(fn, "Stack", stackParameter.valueAsString);
       return fn;
