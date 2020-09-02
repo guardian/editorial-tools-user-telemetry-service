@@ -1,9 +1,10 @@
-import { Stack, Construct, StackProps, CfnOutput, Duration, Tag, CfnParameter } from "@aws-cdk/core";
+import { Stack, Construct, StackProps, CfnOutput, Duration, Tag, CfnParameter, RemovalPolicy } from "@aws-cdk/core";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as s3 from "@aws-cdk/aws-s3";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
+import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
 
 export class TelemetryStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -44,6 +45,19 @@ export class TelemetryStack extends Stack {
     });
 
     /**
+     * S3 bucket – where our telemetry data is persisted
+     */
+
+    const telemetryDataBucket = new Bucket(this, 'tools-telemetry-data-bucket', {
+      versioned: false,
+      bucketName: 'tools-telemetry-data',
+      encryption: BucketEncryption.KMS_MANAGED,
+      publicReadAccess: false,
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: RemovalPolicy.DESTROY
+    });
+
+    /**
      * Lambda
      */
 
@@ -56,7 +70,7 @@ export class TelemetryStack extends Stack {
     const telemetryFunction = () => {
       const fn = new lambda.Function(this, `ToolsTelemetry`, {
         functionName: `tools-telemetry-${stageParameter.valueAsString}`,
-        runtime: lambda.Runtime.NODEJS_10_X,
+        runtime: lambda.Runtime.NODEJS_12_X,
         memorySize: 128,
         timeout: Duration.seconds(5),
         code: lambda.Code.bucket(
@@ -70,6 +84,7 @@ export class TelemetryStack extends Stack {
           APP: "tools-telemetry",
           MAX_LOG_SIZE: maxLogSize.valueAsString,
           LOG_ENDPOINT_ENABLED: "true",
+          TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName
         },
       });
       Tag.add(fn, "App", `tools-telemetry`);
