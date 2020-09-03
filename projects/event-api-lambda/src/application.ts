@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import Ajv from "ajv";
 
 import eventApiInputSchema from "./schema/eventApiInput.schema.json";
-import { createErrorResponse } from "./response";
+import { createErrorResponse, createOkResponse } from "./response";
 
 export const createApp = (): express.Application => {
   const app = express();
@@ -11,7 +11,7 @@ export const createApp = (): express.Application => {
   const validateEventApiInput = ajv.compile(eventApiInputSchema);
 
   app.get("/healthcheck", (_: Request, res: Response) => {
-    res.send("This is the Event API app.");
+    res.send(createOkResponse("This is the Event API app."));
   });
 
   app.post(
@@ -24,6 +24,7 @@ export const createApp = (): express.Application => {
       }
 
       const isInputValid = validateEventApiInput(req.body);
+
       if (!isInputValid) {
         res.status(400);
         res.send(
@@ -32,7 +33,7 @@ export const createApp = (): express.Application => {
         return;
       }
 
-      res.status(204);
+      res.status(204).end();
     }
   );
 

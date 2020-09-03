@@ -10,6 +10,7 @@ export const createErrorResponse = (message: string, data: Object): IResponse =>
   data
 });
 
-export const createOkResponse = (): IResponse => ({
-  status: 'ok'
+export const createOkResponse = (message: string): IResponse => ({
+  status: 'ok',
+  message
 })
