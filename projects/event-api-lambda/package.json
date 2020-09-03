@@ -21,7 +21,7 @@
   "scripts": {
     "build": "ncc build src/index.ts -o dist -m -e aws-sdk",
     "deploy": "node-riffraff-artifact",
-    "start": "ts-node-dev --ignore-watch node_modules index.ts",
+    "start": "ts-node-dev --ignore-watch node_modules src/index.ts",
     "validate": "cd ../.. && script/make validate-logging",
     "fix": "cd ../.. && script/make fix-logging",
     "test": "jest --coverage",
