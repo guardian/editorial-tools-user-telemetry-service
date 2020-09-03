@@ -1,0 +1,11 @@
+stacks: [flexible]
+regions: [eu-west-1]
+deployments:
+    event-api-lambda:
+        type: aws-lambda
+        parameters:
+            prefixStack: false
+            bucket: composer-dist
+            fileName: event-api-lambda.zip
+            functionNames:
+                [event-api-lambda-]
