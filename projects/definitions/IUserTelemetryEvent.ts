@@ -28,7 +28,7 @@ export interface IUserTelemetryEvent {
   /**
    * The event metadata – any additional context we'd like to provide.
    */
-  tags: {
+  tags?: {
     [key: string]: string | number | boolean;
   };
 }
