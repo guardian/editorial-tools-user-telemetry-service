@@ -5,11 +5,10 @@ import {
   S3Event,
 } from "aws-lambda";
 
-import { s3 } from "../lib/aws";
 import { createOkResponse, createErrorResponse } from "../lib/response";
 import { getEventsFromS3File, putEventsToKinesisStream } from "../lib/util";
 
-export const lambdaHandler = async (
+export const handler = async (
   event: S3Event
 ): Promise<APIGatewayProxyResult> => {
   const Bucket = event?.Records[0].s3.bucket.name;
