@@ -2,7 +2,9 @@ require("dotenv").config();
 
 import awsServerlessExpress from "aws-serverless-express";
 import { Handler } from "aws-lambda";
+
 import { createApp } from "./application";
+import { isRunningLocally } from "./aws";
 
 const app = createApp();
 
@@ -14,10 +16,7 @@ export const handler: Handler = (event, context) => {
   );
 };
 
-// If require.main is the current module, this file was run
-// directly by node, and we should start the app immediately –
-// it's running locally.
-if (require.main === module) {
+if (isRunningLocally) {
   const port = 3132;
 
   app.listen(port, () => {

@@ -2,13 +2,12 @@ import express from "express";
 import { Request, Response } from "express";
 import Ajv from "ajv";
 
-import eventApiInputSchema from "./schema/eventApiInput.schema.json";
 import { createErrorResponse, createOkResponse } from "./response";
+import { putEventsIntoS3Bucket, createParseEventJson } from "./util";
 
 export const createApp = (): express.Application => {
   const app = express();
-  const ajv = new Ajv();
-  const validateEventApiInput = ajv.compile(eventApiInputSchema);
+  const parseEventJson = createParseEventJson();
 
   app.get("/healthcheck", (_: Request, res: Response) => {
     res.send(createOkResponse("This is the Event API app."));
@@ -17,23 +16,28 @@ export const createApp = (): express.Application => {
   app.post(
     "/event",
     express.json({ limit: "1mb" }),
-    (req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       if (!req.body) {
-        res.status(400).send("Missing request body");
-        return;
+        return res.status(400).send("Missing request body");
       }
 
-      const isInputValid = validateEventApiInput(req.body);
+      const maybeEventData = parseEventJson(req.body);
 
-      if (!isInputValid) {
-        res.status(400);
-        res.send(
-          createErrorResponse("Incorrect event format", validateEventApiInput.errors!)
-        );
-        return;
+      if (maybeEventData.error) {
+        return res
+          .status(400)
+          .send(
+            createErrorResponse("Incorrect event format", maybeEventData.error)
+          );
       }
 
-      res.status(204).end();
+      const fileKey = await putEventsIntoS3Bucket(maybeEventData.value);
+      console.log(
+        `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
+      );
+
+      const response = createOkResponse(fileKey);
+      res.status(201).send(response);
     }
   );
 
