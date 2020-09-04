@@ -44,6 +44,11 @@ export class TelemetryStack extends Stack {
       description: "ARN of ACM certificate for telemetry endpoint",
     });
 
+    const kinesisStreamArn = new CfnParameter(this, "KinesisArn", {
+      type: "String",
+      description: "ARN of the Kinesis stream to post event data",
+    });
+
     const maxLogSize = new CfnParameter(this, "MaxLogSize", {
       type: "String",
       description:
@@ -73,25 +78,29 @@ export class TelemetryStack extends Stack {
       "composer-dist"
     );
 
-    const telemetryFunction = () => {
+    const commonLambdaParams = {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      memorySize: 128,
+      timeout: Duration.seconds(5),
+      handler: "index.handler",
+      environment: {
+        STAGE: stageParameter.valueAsString,
+        STACK: stackParameter.valueAsString,
+        APP: "tools-telemetry",
+        MAX_LOG_SIZE: maxLogSize.valueAsString,
+        LOG_ENDPOINT_ENABLED: "true",
+        TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
+      },
+    };
+
+    const createTelemetryAPIFunction = () => {
       const fn = new lambda.Function(this, `EventApiLambda`, {
+        ...commonLambdaParams,
         functionName: `event-api-lambda-${stageParameter.valueAsString}`,
-        runtime: lambda.Runtime.NODEJS_12_X,
-        memorySize: 128,
-        timeout: Duration.seconds(5),
         code: lambda.Code.bucket(
           deployBucket,
           `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
         ),
-        handler: "index.handler",
-        environment: {
-          STAGE: stageParameter.valueAsString,
-          STACK: stackParameter.valueAsString,
-          APP: "tools-telemetry",
-          MAX_LOG_SIZE: maxLogSize.valueAsString,
-          LOG_ENDPOINT_ENABLED: "true",
-          TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
-        },
       });
       Tag.add(fn, "App", "tools-telemetry");
       Tag.add(fn, "Stage", stageParameter.valueAsString);
@@ -99,7 +108,7 @@ export class TelemetryStack extends Stack {
       return fn;
     };
 
-    const telemetryBackend = telemetryFunction();
+    const telemetryAPIFunction = createTelemetryAPIFunction();
 
     const telemetryBackendPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -109,14 +118,50 @@ export class TelemetryStack extends Stack {
         `${telemetryDataBucket.bucketArn}/*`,
       ],
     });
+    telemetryAPIFunction.addToRolePolicy(telemetryBackendPolicyStatement);
 
-    telemetryBackend.addToRolePolicy(telemetryBackendPolicyStatement);
+    const createTelemetryS3Function = () => {
+      const fn = new lambda.Function(this, `EventS3Lambda`, {
+        ...commonLambdaParams,
+        functionName: `event-s3-lambda-${stageParameter.valueAsString}`,
+        code: lambda.Code.bucket(
+          deployBucket,
+          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
+        ),
+      });
+      Tag.add(fn, "App", "tools-telemetry");
+      Tag.add(fn, "Stage", stageParameter.valueAsString);
+      Tag.add(fn, "Stack", stackParameter.valueAsString);
 
-    // Notify our lambda when new objects are added to the telemetry bucket
-    telemetryDataBucket.addEventNotification(
-      s3.EventType.OBJECT_CREATED,
-      new s3n.LambdaDestination(telemetryBackend)
-    );
+      // Notify our lambda when new objects are added to the telemetry bucket
+      telemetryDataBucket.addEventNotification(
+        s3.EventType.OBJECT_CREATED,
+        new s3n.LambdaDestination(fn)
+      );
+
+      return fn;
+    };
+
+    const telemetryS3Function = createTelemetryS3Function();
+
+    const telemetryS3FunctionS3PolicyStatement = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["s3:GetObject"],
+      resources: [
+        telemetryDataBucket.bucketArn,
+        `${telemetryDataBucket.bucketArn}/*`,
+      ],
+    });
+    const telemetryS3FunctionKinesisPolicyStatement = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["kinesis:PutRecord"],
+      resources: [
+        kinesisStreamArn.valueAsString,
+      ],
+    });
+
+    telemetryS3Function.addToRolePolicy(telemetryS3FunctionS3PolicyStatement);
+    telemetryS3Function.addToRolePolicy(telemetryS3FunctionKinesisPolicyStatement);
 
     /**
      * API Gateway
@@ -130,7 +175,7 @@ export class TelemetryStack extends Stack {
     telemetryApiPolicyStatement.addAnyPrincipal();
 
     const telemetryApi = new apigateway.LambdaRestApi(this, "tools-telemetry", {
-      handler: telemetryBackend,
+      handler: telemetryAPIFunction,
       endpointTypes: [apigateway.EndpointType.EDGE],
       policy: new iam.PolicyDocument({
         statements: [telemetryApiPolicyStatement],
