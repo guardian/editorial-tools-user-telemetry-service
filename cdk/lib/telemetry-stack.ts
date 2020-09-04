@@ -108,6 +108,14 @@ export class TelemetryStack extends Stack {
 
     const telemetryBackend = telemetryFunction();
 
+    const telemetryBackendPolicyStatement = new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ["s3:PutObject"],
+      resources: [telemetryDataBucket.bucketArn, `${telemetryDataBucket.bucketArn}/*`]
+    });
+
+    telemetryBackend.addToRolePolicy(telemetryBackendPolicyStatement);
+
     /**
      * API Gateway
      */
