@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "IUserTelemetryEvent": {
+            "properties": {
+                "app": {
+                    "description": "The application sending the event",
+                    "type": "string"
+                },
+                "eventTime": {
+                    "description": "The time the event occurred (not the time it was queued, or sent), in ISO-8601 date format",
+                    "format": "date-time",
+                    "type": "string"
+                },
+                "stage": {
+                    "description": "The application stage, e.g. 'CODE' | 'PROD'",
+                    "type": "string"
+                },
+                "tags": {
+                    "additionalProperties": {
+                        "type": [
+                            "string",
+                            "number",
+                            "boolean"
+                        ]
+                    },
+                    "description": "The event metadata – any additional context we'd like to provide.",
+                    "type": "object"
+                },
+                "type": {
+                    "description": "The type of event we're sending, e.g. 'USER_ACTION_1' | 'USER_ACTION_2'",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "The value of the event in question",
+                    "type": [
+                        "number",
+                        "boolean"
+                    ]
+                }
+            },
+            "required": [
+                "app",
+                "eventTime",
+                "stage",
+                "type",
+                "value"
+            ],
+            "type": "object"
+        }
+    },
+    "items": {
+        "$ref": "#/definitions/IUserTelemetryEvent"
+    },
+    "type": "array"
+}
+
