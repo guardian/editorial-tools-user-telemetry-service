@@ -118,6 +118,7 @@ export class TelemetryStack extends Stack {
         `${telemetryDataBucket.bucketArn}/*`,
       ],
     });
+
     telemetryAPIFunction.addToRolePolicy(telemetryBackendPolicyStatement);
 
     const createTelemetryS3Function = () => {

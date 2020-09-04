@@ -6,8 +6,8 @@ import { getEventsFromS3File, putEventsToKinesisStream } from "../lib/util";
 export const handler = async (
   event: S3Event
 ): Promise<APIGatewayProxyResult> => {
-  const Bucket = event?.Records[0].s3.bucket.name;
-  const Key = event?.Records[0].s3.object.key;
+  const Bucket = event?.Records[0]?.s3?.bucket.name;
+  const Key = decodeURIComponent(event?.Records[0]?.s3?.object.key);
 
   console.log(`Attempting to read from file at s3://${Bucket}/${Key}`);
 

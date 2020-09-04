@@ -86,15 +86,11 @@ export const convertNDJSONToEvents = (json: string) => {
 
 export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
   const params = {
-    Records: [
-      {
-        Data: convertEventsToNDJSON(events),
-        PartitionKey: uuidv4(),
-      },
-    ],
+    Data: convertEventsToNDJSON(events),
+    PartitionKey: uuidv4(),
     StreamName: telemetryStreamName,
   };
-  return kinesis.putRecords(params).promise();
+  return kinesis.putRecord(params).promise();
 };
 
 export const getEventsFromKinesisStream = async () => {
