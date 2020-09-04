@@ -81,5 +81,25 @@ describe("Event API lambda", () => {
           expect(res.body).toEqual(response);
         });
     });
+
+    it("should accept a valid request", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(204);
+        });
+    });
   });
 });
