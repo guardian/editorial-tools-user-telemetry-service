@@ -59,10 +59,10 @@ export class TelemetryStack extends Stack {
 
     const telemetryDataBucket = new Bucket(
       this,
-      "tools-telemetry-data-bucket",
+      "user-telemetry-data-bucket",
       {
         versioned: false,
-        bucketName: "tools-telemetry-data",
+        bucketName: "user-telemetry-data",
         encryption: BucketEncryption.KMS_MANAGED,
         publicReadAccess: false,
         blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -140,14 +140,14 @@ export class TelemetryStack extends Stack {
 
     const telemetryCertificate = acm.Certificate.fromCertificateArn(
       this,
-      "tools-telemetry-certificate",
+      "user-telemetry-certificate",
       telemetryCertificateArn.valueAsString
     );
 
 
     const telemetryDomainName = new apigateway.DomainName(
       this,
-      "tools-telemetry-domain-name",
+      "user-telemetry-domain-name",
       {
         domainName: telemetryHostName.valueAsString,
         certificate: telemetryCertificate,
@@ -157,7 +157,7 @@ export class TelemetryStack extends Stack {
 
     telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-    new CfnOutput(this, "tools-telemetry-api-target-hostname", {
+    new CfnOutput(this, "user-telemetry-api-target-hostname", {
       description: "hostname",
       value: `${telemetryDomainName.domainNameAliasDomainName}`,
     });
