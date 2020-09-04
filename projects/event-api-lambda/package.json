@@ -27,7 +27,7 @@
     "fix": "cd ../.. && script/make fix-logging",
     "test": "jest --coverage",
     "test:watch": "jest --watch",
-    "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json"
+    "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
   },
   "dependencies": {
     "@types/aws-lambda": "^8.10.31",

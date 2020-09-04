@@ -82,6 +82,41 @@ describe("Event API lambda", () => {
         });
     });
 
+    it("should not accept a request with a missing value", () => {
+      const request = [
+        {
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1
+        },
+      ];
+
+      const response = {
+        data: [
+          {
+            dataPath: "[0]",
+            keyword: "required",
+            message: "should have required property 'app'",
+            params: {
+              missingProperty: "app",
+            },
+            schemaPath: "#/definitions/IUserTelemetryEvent/required",
+          },
+        ],
+        message: "Incorrect event format",
+        status: "error"
+      };
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(400);
+          expect(res.body).toEqual(response);
+        });
+    });
+
     it("should accept a valid request", () => {
       const request = [
         {

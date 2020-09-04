@@ -39,6 +39,13 @@
                     ]
                 }
             },
+            "required": [
+                "app",
+                "eventTime",
+                "stage",
+                "type",
+                "value"
+            ],
             "type": "object"
         }
     },
