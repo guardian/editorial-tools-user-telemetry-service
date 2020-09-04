@@ -1,9 +1,4 @@
-import AWS from "aws-sdk";
-import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
-  S3Event,
-} from "aws-lambda";
+import { APIGatewayProxyResult, S3Event } from "aws-lambda";
 
 import { createOkResponse, createErrorResponse } from "../lib/response";
 import { getEventsFromS3File, putEventsToKinesisStream } from "../lib/util";
@@ -13,6 +8,8 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   const Bucket = event?.Records[0].s3.bucket.name;
   const Key = event?.Records[0].s3.object.key;
+
+  console.log(`Attempting to read from file at s3://${Bucket}/${Key}`);
 
   if (!Bucket || !Key) {
     const message = "S3 data not present in received event";

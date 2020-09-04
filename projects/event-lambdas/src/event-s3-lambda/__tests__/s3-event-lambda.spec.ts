@@ -1,4 +1,4 @@
-import { lambdaHandler } from "../index";
+import { handler } from "../index";
 import { getApiGatewayEventForPutEvent, eventsAsNDJSON } from "../../__tests__/fixtures";
 
 import { s3, kinesis } from "../../lib/aws";
@@ -40,7 +40,7 @@ describe("s3 event handler", () => {
     const Key = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any);
 
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
-    const lambdaResponse = await lambdaHandler(event);
+    const lambdaResponse = await handler(event);
 
     const expectedResponse = JSON.stringify(
       createErrorResponse(`Invalid data in file with key ${Key}`, [
@@ -67,7 +67,7 @@ describe("s3 event handler", () => {
 
     await s3.putObject(s3Params).promise();
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
-    await lambdaHandler(event);
+    await handler(event);
 
     // The written data should be available on the stream
     const result = await getEventsFromKinesisStream();
