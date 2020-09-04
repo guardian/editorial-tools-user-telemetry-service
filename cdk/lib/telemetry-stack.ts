@@ -11,6 +11,7 @@ import {
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as s3 from "@aws-cdk/aws-s3";
+import * as s3n from "@aws-cdk/aws-s3-notifications";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
@@ -115,6 +116,9 @@ export class TelemetryStack extends Stack {
     });
 
     telemetryBackend.addToRolePolicy(telemetryBackendPolicyStatement);
+
+    // Notify our lambda when new objects are added to the telemetry bucket
+    telemetryDataBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(telemetryBackend))
 
     /**
      * API Gateway
