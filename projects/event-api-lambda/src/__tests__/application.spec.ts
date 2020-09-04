@@ -2,13 +2,42 @@ import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
 
-import { telemetryBucketName } from "../constants";
+jest.mock("uuid", () => ({
+  v4: () => "mock-uuid",
+}));
+
 import { s3 } from "../aws";
+import { telemetryBucketName } from "../constants";
 
 chai.use(chaiHttp);
 chai.should();
 
 describe("Event API lambda", () => {
+  const _Date = Date;
+  const constantDate = new Date("2020-09-03T17:34:37.839Z");
+
+  beforeAll(async () => {
+    try {
+      await s3.listObjects({ Bucket: telemetryBucketName }).promise();
+    } catch (e) {
+      throw new Error(
+        `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
+      );
+    }
+
+    // @ts-ignore
+    global.Date = class extends Date {
+      constructor() {
+        super();
+        return constantDate;
+      }
+    };
+  });
+
+  afterAll(() => {
+    global.Date = _Date;
+  });
+
   const testApp = createApp();
 
   describe("/healthcheck", () => {
@@ -85,12 +114,13 @@ describe("Event API lambda", () => {
         });
     });
 
+
     it("should not accept a request with a missing value", () => {
       const request = [
         {
           stage: "PROD",
           type: "USER_ACTION_1",
-          value: 1,
+          value: 1
         },
       ];
 
@@ -107,7 +137,7 @@ describe("Event API lambda", () => {
           },
         ],
         message: "Incorrect event format",
-        status: "error",
+        status: "error"
       };
 
       return chai
@@ -136,7 +166,7 @@ describe("Event API lambda", () => {
         .post("/event")
         .send(request)
         .then((res) => {
-          expect(res.status).toBe(204);
+          expect(res.status).toBe(201);
         });
     });
 
