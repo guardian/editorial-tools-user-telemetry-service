@@ -1,6 +1,6 @@
 {
   "projectName": "Editorial Tools::Telemetry Service event lambda",
-  "vcsURL": "https://github.com/guardian/tools-telemetry-service",
+  "vcsURL": "https://github.com/guardian/editorial-tools-user-telemetry-service",
   "actions": [
     {
       "action": "event-api-lambda",
