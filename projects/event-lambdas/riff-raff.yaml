@@ -9,3 +9,11 @@ deployments:
             fileName: event-api-lambda.zip
             functionNames:
                 [event-api-lambda-]
+    event-s3-lambda:
+      type: aws-lambda
+      parameters:
+          prefixStack: false
+          bucket: composer-dist
+          fileName: event-s3-lambda.zip
+          functionNames:
+              [event-s3-lambda-]

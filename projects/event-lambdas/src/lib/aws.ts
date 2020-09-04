@@ -15,7 +15,8 @@ if (isRunningLocally) {
   AWS.config.update({
     accessKeyId: "xyz",
     secretAccessKey: "qwe",
-    s3ForcePathStyle: true
+    s3ForcePathStyle: true,
+    region: 'eu-west-1'
   });
 }
 
@@ -26,3 +27,4 @@ const awsOptions = isRunningLocally
   : undefined;
 
 export const s3 = new AWS.S3(awsOptions);
+export const kinesis = new AWS.Kinesis(awsOptions);

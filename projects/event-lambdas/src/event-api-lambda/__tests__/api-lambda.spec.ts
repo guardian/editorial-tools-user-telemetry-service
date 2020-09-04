@@ -1,4 +1,4 @@
-import { createApp } from "../application";
+import { createApp } from "../../lib/application";
 import chai from "chai";
 import chaiHttp from "chai-http";
 
@@ -6,8 +6,8 @@ jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
 }));
 
-import { s3 } from "../aws";
-import { telemetryBucketName } from "../constants";
+import { s3 } from "../../lib/aws";
+import { telemetryBucketName } from "../../lib/constants";
 
 chai.use(chaiHttp);
 chai.should();

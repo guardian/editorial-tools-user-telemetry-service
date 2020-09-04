@@ -39,14 +39,10 @@ export class TelemetryStack extends Stack {
       description: "Hostname for telemetry endpoint",
     });
 
-    const telemetryCertificateArn = new CfnParameter(
-      this,
-      "CertificateArn",
-      {
-        type: "String",
-        description: "ARN of ACM certificate for telemetry endpoint",
-      }
-    );
+    const telemetryCertificateArn = new CfnParameter(this, "CertificateArn", {
+      type: "String",
+      description: "ARN of ACM certificate for telemetry endpoint",
+    });
 
     const maxLogSize = new CfnParameter(this, "MaxLogSize", {
       type: "String",
@@ -58,18 +54,14 @@ export class TelemetryStack extends Stack {
      * S3 bucket – where our telemetry data is persisted
      */
 
-    const telemetryDataBucket = new Bucket(
-      this,
-      "user-telemetry-data-bucket",
-      {
-        versioned: false,
-        bucketName: "user-telemetry-data",
-        encryption: BucketEncryption.KMS_MANAGED,
-        publicReadAccess: false,
-        blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-        removalPolicy: RemovalPolicy.DESTROY,
-      }
-    );
+    const telemetryDataBucket = new Bucket(this, "user-telemetry-data-bucket", {
+      versioned: false,
+      bucketName: "user-telemetry-data",
+      encryption: BucketEncryption.KMS_MANAGED,
+      publicReadAccess: false,
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
 
     /**
      * Lambda
@@ -112,13 +104,19 @@ export class TelemetryStack extends Stack {
     const telemetryBackendPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["s3:PutObject"],
-      resources: [telemetryDataBucket.bucketArn, `${telemetryDataBucket.bucketArn}/*`]
+      resources: [
+        telemetryDataBucket.bucketArn,
+        `${telemetryDataBucket.bucketArn}/*`,
+      ],
     });
 
     telemetryBackend.addToRolePolicy(telemetryBackendPolicyStatement);
 
     // Notify our lambda when new objects are added to the telemetry bucket
-    telemetryDataBucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(telemetryBackend))
+    telemetryDataBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(telemetryBackend)
+    );
 
     /**
      * API Gateway
@@ -139,7 +137,7 @@ export class TelemetryStack extends Stack {
       }),
       defaultMethodOptions: {
         apiKeyRequired: false,
-      }
+      },
     });
 
     const telemetryCertificate = acm.Certificate.fromCertificateArn(
@@ -147,7 +145,6 @@ export class TelemetryStack extends Stack {
       "user-telemetry-certificate",
       telemetryCertificateArn.valueAsString
     );
-
 
     const telemetryDomainName = new apigateway.DomainName(
       this,

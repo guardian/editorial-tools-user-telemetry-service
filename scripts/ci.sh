@@ -5,7 +5,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR=${DIR}/..
 
-EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-api-lambda"
+EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-lambdas"
 EVENT_API_LAMBDA_BUCKET_NAME=user-telemetry-service
 
 function setupEventApiLambda {

@@ -1,13 +1,11 @@
 import express from "express";
 import { Request, Response } from "express";
-import Ajv from "ajv";
 
 import { createErrorResponse, createOkResponse } from "./response";
-import { putEventsIntoS3Bucket, createParseEventJson } from "./util";
+import { putEventsIntoS3Bucket, parseEventJson } from "./util";
 
 export const createApp = (): express.Application => {
   const app = express();
-  const parseEventJson = createParseEventJson();
 
   app.get("/healthcheck", (_: Request, res: Response) => {
     res.send(createOkResponse("This is the Event API app."));

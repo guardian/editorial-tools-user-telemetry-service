@@ -1,10 +1,8 @@
-require("dotenv").config();
-
 import awsServerlessExpress from "aws-serverless-express";
 import { Handler } from "aws-lambda";
 
-import { createApp } from "./application";
-import { isRunningLocally } from "./aws";
+import { createApp } from "../lib/application";
+import { isRunningLocally } from "../lib/aws";
 
 const app = createApp();
 
