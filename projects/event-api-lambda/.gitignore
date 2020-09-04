@@ -1,5 +1,6 @@
 *.d.ts
 !types/*.d.ts
 coverage
+.tmp
 node_modules
 dist
