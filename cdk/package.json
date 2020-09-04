@@ -25,6 +25,7 @@
     "@aws-cdk/aws-apigateway": "^1.61.1",
     "@aws-cdk/aws-certificatemanager": "^1.61.1",
     "@aws-cdk/aws-iam": "^1.61.1",
+    "@aws-cdk/aws-kinesis": "^1.61.1",
     "@aws-cdk/aws-lambda": "^1.61.1",
     "@aws-cdk/aws-s3": "^1.61.1",
     "@aws-cdk/aws-s3-notifications": "^1.61.1",

@@ -12,6 +12,7 @@ import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as s3 from "@aws-cdk/aws-s3";
 import * as s3n from "@aws-cdk/aws-s3-notifications";
+import * as kinesis from "@aws-cdk/aws-kinesis";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
@@ -93,6 +94,10 @@ export class TelemetryStack extends Stack {
       },
     };
 
+    /**
+     * API Lambda
+     */
+
     const createTelemetryAPIFunction = () => {
       const fn = new lambda.Function(this, `EventApiLambda`, {
         ...commonLambdaParams,
@@ -121,6 +126,16 @@ export class TelemetryStack extends Stack {
 
     telemetryAPIFunction.addToRolePolicy(telemetryBackendPolicyStatement);
 
+    /**
+     * S3 event handler lambda
+     */
+
+    const kinesisStream = kinesis.Stream.fromStreamArn(
+      this,
+      "user-telemetry-kinesis-stream",
+      kinesisStreamArn.valueAsString
+    );
+
     const createTelemetryS3Function = () => {
       const fn = new lambda.Function(this, `EventS3Lambda`, {
         ...commonLambdaParams,
@@ -129,6 +144,10 @@ export class TelemetryStack extends Stack {
           deployBucket,
           `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
         ),
+        environment: {
+          ...commonLambdaParams.environment,
+          TELEMETRY_STREAM_NAME: kinesisStream.streamName,
+        },
       });
       Tag.add(fn, "App", "tools-telemetry");
       Tag.add(fn, "Stage", stageParameter.valueAsString);
@@ -156,13 +175,13 @@ export class TelemetryStack extends Stack {
     const telemetryS3FunctionKinesisPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ["kinesis:PutRecord"],
-      resources: [
-        kinesisStreamArn.valueAsString,
-      ],
+      resources: [kinesisStreamArn.valueAsString],
     });
 
     telemetryS3Function.addToRolePolicy(telemetryS3FunctionS3PolicyStatement);
-    telemetryS3Function.addToRolePolicy(telemetryS3FunctionKinesisPolicyStatement);
+    telemetryS3Function.addToRolePolicy(
+      telemetryS3FunctionKinesisPolicyStatement
+    );
 
     /**
      * API Gateway
