@@ -16,13 +16,11 @@ export const lambdaHandler = async (
   const Key = event?.Records[0].s3.object.key;
 
   if (!Bucket || !Key) {
-    const body = `S3 data not present in received event. Event: ${JSON.stringify(
-      event
-    )}`;
-    console.error();
     return {
       statusCode: 400,
-      body,
+      body: JSON.stringify(
+        createErrorResponse(`S3 data not present in received event`, event)
+      ),
     };
   }
 
