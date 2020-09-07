@@ -1,10 +1,17 @@
 import { handler } from "../index";
-import { getApiGatewayEventForPutEvent, eventsAsNDJSON } from "../../__tests__/fixtures";
+import {
+  getApiGatewayEventForPutEvent,
+  eventsAsNDJSON,
+  events,
+} from "../../__tests__/fixtures";
 
-import { s3, kinesis } from "../../lib/aws";
-import { telemetryBucketName, telemetryStreamName } from "../../lib/constants";
+import { s3 } from "../../lib/aws";
+import { telemetryBucketName } from "../../lib/constants";
 import { createErrorResponse } from "../../lib/response";
-import { putEventsIntoS3Bucket, getEventsFromKinesisStream } from "../../lib/util";
+import {
+  putEventsIntoS3Bucket,
+  getEventsFromKinesisStream,
+} from "../../lib/util";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
@@ -37,7 +44,7 @@ describe("s3 event handler", () => {
   });
 
   it("should read s3 files from the given event, and reject them if they're malformed", async () => {
-    const Key = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any);
+    const Key = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any, "example-key");
 
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
     const lambdaResponse = await handler(event);
@@ -57,7 +64,7 @@ describe("s3 event handler", () => {
     expect(lambdaResponse.body).toEqual(expectedResponse);
   });
 
-  it("should read s3 files from the given event, and write them to kinesis", async () => {
+  it("should read s3 files from the given event, and write them to kinesis, one record per event", async () => {
     const Key = "example-key";
     const s3Params = {
       Bucket: telemetryBucketName,
@@ -69,12 +76,13 @@ describe("s3 event handler", () => {
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
     await handler(event);
 
-    // The written data should be available on the stream
+    // The written data should be available on the stream as the last two records in JSON
     const result = await getEventsFromKinesisStream();
-    const dataFromStream = result.Records.map((record) =>
-      record.Data.toString()
-    ).find((data) => data == eventsAsNDJSON);
+    const dataFromStream = result
+      .Records
+      .slice(result.Records.length - 2)
+      .map((record) => JSON.parse(record.Data.toString()));
 
-    expect(dataFromStream).toBe(eventsAsNDJSON);
+    expect(dataFromStream).toEqual(events);
   });
 });

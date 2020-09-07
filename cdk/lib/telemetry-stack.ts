@@ -174,7 +174,7 @@ export class TelemetryStack extends Stack {
     });
     const telemetryS3FunctionKinesisPolicyStatement = new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
-      actions: ["kinesis:PutRecord"],
+      actions: ["kinesis:PutRecords"],
       resources: [kinesisStreamArn.valueAsString],
     });
 

@@ -26,7 +26,8 @@ export const parseEventJson = (
  * @return The key of the file that's been added.
  */
 export const putEventsIntoS3Bucket = async (
-  events: IUserTelemetryEvent[]
+  events: IUserTelemetryEvent[],
+  key?: string
 ): Promise<string> => {
   if (!telemetryBucketName) {
     throw new Error(
@@ -37,9 +38,8 @@ export const putEventsIntoS3Bucket = async (
   // Data is partitioned by day, in format YYYY-MM-DD. The filename
   // contains an ISO date to aid discovery, and a uuid to ensure uniqueness.
   const now = new Date();
-  const telemetryBucketKey = `data/${getYYYYmmddDate(
-    now
-  )}/${now.toISOString()}-${uuidv4()}`;
+  const telemetryBucketKey =
+    key || `data/${getYYYYmmddDate(now)}/${now.toISOString()}-${uuidv4()}`;
   const eventsJSON = convertEventsToNDJSON(events);
 
   const params = {
@@ -85,12 +85,16 @@ export const convertNDJSONToEvents = (json: string) => {
 };
 
 export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
-  const params = {
-    Data: convertEventsToNDJSON(events),
+  const Records = events.map((event) => ({
+    Data: JSON.stringify(event),
+    // Ordering doesn't matter
     PartitionKey: uuidv4(),
+  }));
+  const params = {
+    Records,
     StreamName: telemetryStreamName,
   };
-  return kinesis.putRecord(params).promise();
+  return kinesis.putRecords(params).promise();
 };
 
 export const getEventsFromKinesisStream = async () => {
