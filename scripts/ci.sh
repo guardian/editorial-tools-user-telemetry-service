@@ -1,3 +1,43 @@
-#!/bin/sh -e
+#!/usr/bin/env bash
 
-(cd projects/event-api-lambda && npm i && npm run test && npm run build && npm run deploy)
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT_DIR=${DIR}/..
+
+EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-api-lambda"
+EVENT_API_LAMBDA_BUCKET_NAME=telemetry-service
+
+function setupEventApiLambda {
+  cd $EVENT_API_LAMBDA_DIR
+  docker-compose up -d
+  # Ensure localstack is up, and relevant resources have been created
+  for attempt in {1..3}
+  do
+    AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local aws s3 ls $EVENT_API_LAMBDA_BUCKET_NAME --endpoint-url http://localhost:4566 \
+      && break
+    sleep 5
+  done
+  npm i
+  npm run test
+  npm run build
+  npm run deploy
+}
+
+function teardownEventApiLambda {
+  cd $EVENT_API_LAMBDA_DIR
+  docker-compose down
+}
+
+function setup {
+  setupEventApiLambda
+}
+
+function teardown {
+  teardownEventApiLambda
+}
+
+trap teardown EXIT
+
+setup
+teardown

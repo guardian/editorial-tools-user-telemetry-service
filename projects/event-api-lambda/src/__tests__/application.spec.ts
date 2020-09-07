@@ -2,10 +2,42 @@ import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
 
+jest.mock("uuid", () => ({
+  v4: () => "mock-uuid",
+}));
+
+import { s3 } from "../aws";
+import { telemetryBucketName } from "../constants";
+
 chai.use(chaiHttp);
 chai.should();
 
 describe("Event API lambda", () => {
+  const _Date = Date;
+  const constantDate = new Date("2020-09-03T17:34:37.839Z");
+
+  beforeAll(async () => {
+    try {
+      await s3.listObjects({ Bucket: telemetryBucketName }).promise();
+    } catch (e) {
+      throw new Error(
+        `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
+      );
+    }
+
+    // @ts-ignore
+    global.Date = class extends Date {
+      constructor() {
+        super();
+        return constantDate;
+      }
+    };
+  });
+
+  afterAll(() => {
+    global.Date = _Date;
+  });
+
   const testApp = createApp();
 
   describe("/healthcheck", () => {
@@ -82,6 +114,7 @@ describe("Event API lambda", () => {
         });
     });
 
+
     it("should not accept a request with a missing value", () => {
       const request = [
         {
@@ -133,8 +166,40 @@ describe("Event API lambda", () => {
         .post("/event")
         .send(request)
         .then((res) => {
-          expect(res.status).toBe(204);
+          expect(res.status).toBe(201);
         });
+    });
+
+    it("should write well-formed requests to S3 as NDJSON, and return the file key for easy retrieval", async () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-03T11:39:42.936Z",
+        },
+      ];
+
+      const res = await chai.request(testApp).post("/event").send(request);
+
+      const expectedResponse = {
+        message: "data/2020-09-03/2020-09-03T17:34:37.839Z-mock-uuid",
+        status: "ok",
+      };
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual(expectedResponse);
+
+      const params = {
+        Bucket: telemetryBucketName,
+        Key: res.body.message,
+      };
+      const writtenFile = await s3.getObject(params).promise();
+
+      // We expect the file to contain our request as NDJSON
+      const expectedFileContents = `${JSON.stringify(request[0])}\n`;
+      expect(writtenFile.Body?.toString()).toBe(expectedFileContents);
     });
   });
 });
