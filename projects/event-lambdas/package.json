@@ -23,11 +23,9 @@
     "typescript": "^3.5.3"
   },
   "scripts": {
-    "build": "ncc build src/index.ts -o dist -m -e aws-sdk",
+    "build": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e aws-sdk && ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e aws-sdk",
     "deploy": "node-riffraff-artifact",
     "start": "ts-node-dev --ignore-watch node_modules src/index.ts",
-    "validate": "cd ../.. && script/make validate-logging",
-    "fix": "cd ../.. && script/make fix-logging",
     "test": "JEST_CIRCUS=1 jest --coverage",
     "test:watch": "JEST_CIRCUS=1 jest --watch",
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
@@ -35,11 +33,13 @@
   "dependencies": {
     "@types/aws-lambda": "^8.10.31",
     "@types/jest": "^24.0.17",
+    "@types/lodash": "^4.14.161",
     "ajv": "^6.12.4",
     "aws-sdk": "^2.745.0",
     "aws-serverless-express": "^3.3.6",
     "express": "^4.17.1",
     "jest": "^24.8.0",
+    "lodash": "^4.17.20",
     "ndjson": "^2.0.0",
     "typescript-json-schema": "^0.43.0",
     "uuid": "^8.3.0"

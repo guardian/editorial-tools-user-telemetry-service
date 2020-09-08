@@ -5,14 +5,14 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR=${DIR}/..
 
-EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-api-lambda"
+EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-lambdas"
 EVENT_API_LAMBDA_BUCKET_NAME=user-telemetry-service
 
 function setupEventApiLambda {
   cd $EVENT_API_LAMBDA_DIR
   docker-compose up -d
   # Ensure localstack is up, and relevant resources have been created
-  for attempt in {1..3}
+  for attempt in {1..5}
   do
     AWS_ACCESS_KEY_ID=local AWS_SECRET_ACCESS_KEY=local aws s3 ls $EVENT_API_LAMBDA_BUCKET_NAME --endpoint-url http://localhost:4566 \
       && break
