@@ -1,14 +1,19 @@
-import { PanDomainAuthentication, guardianValidation, AuthenticationStatus } from '@guardian/pan-domain-node';
-import { APIGatewayProxyResult } from 'aws-lambda';
+import {
+  PanDomainAuthentication,
+  guardianValidation,
+  AuthenticationStatus,
+} from "@guardian/pan-domain-node";
+import { APIGatewayProxyResult } from "aws-lambda";
 import { Request } from "express";
 
-import { createErrorResponse } from './response';
+import { pandaSettingsKey } from "./constants";
+import { createErrorResponse } from "./response";
 
 export const panda = new PanDomainAuthentication(
   "gutoolsAuth-assym", // cookie name
   "eu-west-1", // AWS region
   "pan-domain-auth-settings", // Settings bucket
-  "local.dev-gutools.co.uk.public.settings", // Settings file
+  pandaSettingsKey, // Settings file
   guardianValidation
 );
 
