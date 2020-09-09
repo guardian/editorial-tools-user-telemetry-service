@@ -15,6 +15,7 @@ export const createApp = (): express.Application => {
       res.header("Access-Control-Allow-Headers", "Content-Type");
       res.header("Access-Control-Allow-Origin", req.get('origin'));
       res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
+      res.header("Access-Control-Allow-Credentials", "true");
     }
     next();
   });
