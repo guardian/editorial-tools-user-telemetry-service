@@ -1,4 +1,4 @@
-import { createApp } from "../../lib/application";
+import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
 
