@@ -7,6 +7,13 @@ import { putEventsIntoS3Bucket, parseEventJson } from "./util";
 export const createApp = (): express.Application => {
   const app = express();
 
+  app.use((_, res, next) => {
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
+    next();
+  });
+
   app.get("/healthcheck", (_: Request, res: Response) => {
     res.send(createOkResponse("This is the Event API app."));
   });
