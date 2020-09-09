@@ -25,12 +25,13 @@
   "scripts": {
     "build": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e aws-sdk && ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e aws-sdk",
     "deploy": "node-riffraff-artifact",
-    "start": "ts-node-dev --ignore-watch node_modules src/index.ts",
+    "start": "ts-node-dev --ignore-watch node_modules src/event-api-lambda/index.ts",
     "test": "JEST_CIRCUS=1 jest --coverage",
     "test:watch": "JEST_CIRCUS=1 jest --watch",
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
   },
   "dependencies": {
+    "@guardian/pan-domain-node": "^0.4.2",
     "@types/aws-lambda": "^8.10.31",
     "@types/jest": "^24.0.17",
     "@types/lodash": "^4.14.161",
