@@ -22,10 +22,9 @@ export async function authenticated(
   res: Response,
   handler: () => Promise<void>
 ): Promise<void> {
-  console.log("auth");
-  const cookie = Array.isArray(req.headers["Cookie"])
-    ? req.headers["Cookie"][0]
-    : req.headers["Cookie"] || "";
+  const cookie = Array.isArray(req.headers["cookie"])
+    ? req.headers["cookie"][0]
+    : req.headers["cookie"] || "";
 
   if (!cookie) {
     const message =
@@ -37,11 +36,7 @@ export async function authenticated(
   return panda.verify(cookie).then(({ status }) => {
     switch (status) {
       case AuthenticationStatus.AUTHORISED:
-        return handler().catch((error) => {
-          applyErrorResponse(res, 500, "Internal server error", error);
-          return;
-        });
-
+        return handler();
       default:
         applyErrorResponse(res, 403, "Invalid credentials");
         return;

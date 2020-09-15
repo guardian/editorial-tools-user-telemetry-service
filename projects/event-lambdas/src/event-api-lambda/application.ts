@@ -1,9 +1,7 @@
 import express from "express";
 import { Request, Response } from "express";
 
-import { createErrorResponse, createOkResponse } from "../lib/response";
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
-
 import { panda, authenticated } from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 

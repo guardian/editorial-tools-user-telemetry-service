@@ -1,10 +1,13 @@
 import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
+import { authenticated } from "../../lib/authentication";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
 }));
+
+jest.mock("../../lib/authentication");
 
 import { s3 } from "../../lib/aws";
 import { telemetryBucketName } from "../../lib/constants";
@@ -15,6 +18,7 @@ chai.should();
 describe("Event API lambda", () => {
   const _Date = Date;
   const constantDate = new Date("2020-09-03T17:34:37.839Z");
+  const originalAuthenticated = authenticated;
 
   beforeAll(async () => {
     try {
@@ -32,10 +36,13 @@ describe("Event API lambda", () => {
         return constantDate;
       }
     };
+
+    (authenticated as any).mockImplementation(((_, __, ___, handler) => handler()) as typeof authenticated);
   });
 
   afterAll(() => {
     global.Date = _Date;
+    (authenticated as any).mockImplementation(originalAuthenticated);
   });
 
   const testApp = createApp();
@@ -114,13 +121,12 @@ describe("Event API lambda", () => {
         });
     });
 
-
     it("should not accept a request with a missing value", () => {
       const request = [
         {
           stage: "PROD",
           type: "USER_ACTION_1",
-          value: 1
+          value: 1,
         },
       ];
 
@@ -137,7 +143,7 @@ describe("Event API lambda", () => {
           },
         ],
         message: "Incorrect event format",
-        status: "error"
+        status: "error",
       };
 
       return chai
