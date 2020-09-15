@@ -1,0 +1,4 @@
+name: user-telemetry-api
+mappings:
+  - port: 3132
+    prefix: user-telemetry
