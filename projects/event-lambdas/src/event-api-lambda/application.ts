@@ -5,6 +5,7 @@ import { createErrorResponse, createOkResponse } from "../lib/response";
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
 
 import { panda, authenticated } from "../lib/authentication";
+import { applyErrorResponse, applyOkResponse } from "./util";
 
 export const createApp = (): express.Application => {
   const app = express();
@@ -21,26 +22,29 @@ export const createApp = (): express.Application => {
   });
 
   app.get("/healthcheck", (_: Request, res: Response) => {
-    res.send(createOkResponse(200, "This is the Event API app."));
+    applyOkResponse(res, 200, "This is the Event API app.");
   });
 
   app.post(
     "/event",
     express.json({ limit: "1mb" }),
     async (req: Request, res: Response) =>
-      authenticated(panda, req, async () => {
+      authenticated(panda, req, res, async () => {
         if (!req.body) {
-          return createErrorResponse(401, "Missing request body");
+          applyErrorResponse(res, 401, "Missing request body");
+          return;
         }
 
         const maybeEventData = parseEventJson(req.body);
 
         if (maybeEventData.error) {
-          return createErrorResponse(
+          applyErrorResponse(
+            res,
             400,
             "Incorrect event format",
             maybeEventData.error
           );
+          return;
         }
 
         const fileKey = await putEventsIntoS3Bucket(maybeEventData.value);
@@ -48,7 +52,7 @@ export const createApp = (): express.Application => {
           `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
         );
 
-        return createOkResponse(201, fileKey);
+        applyOkResponse(res, 201, fileKey);
       })
   );
 

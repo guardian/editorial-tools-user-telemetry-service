@@ -3,11 +3,10 @@ import {
   guardianValidation,
   AuthenticationStatus,
 } from "@guardian/pan-domain-node";
-import { APIGatewayProxyResult } from "aws-lambda";
-import { Request } from "express";
+import { Request, Response } from "express";
 
 import { pandaSettingsKey } from "./constants";
-import { createErrorResponse } from "./response";
+import { applyErrorResponse } from "../event-api-lambda/util";
 
 export const panda = new PanDomainAuthentication(
   "gutoolsAuth-assym", // cookie name
@@ -20,28 +19,32 @@ export const panda = new PanDomainAuthentication(
 export async function authenticated(
   panda: PanDomainAuthentication,
   req: Request,
-  handler: () => Promise<APIGatewayProxyResult>
-): Promise<APIGatewayProxyResult> {
+  res: Response,
+  handler: () => Promise<void>
+): Promise<void> {
+  console.log("auth");
   const cookie = Array.isArray(req.headers["Cookie"])
     ? req.headers["Cookie"][0]
     : req.headers["Cookie"] || "";
 
   if (!cookie) {
-    return Promise.resolve(
-      createErrorResponse(403, "No pan-domain cookie present in the request")
-    );
+    const message =
+      "No pan-domain authentication cookie present in the request";
+    applyErrorResponse(res, 403, message);
+    return;
   }
 
   return panda.verify(cookie).then(({ status }) => {
     switch (status) {
       case AuthenticationStatus.AUTHORISED:
         return handler().catch((error) => {
-          console.error(JSON.stringify(error));
-          return createErrorResponse(500, "Internal server error", error);
+          applyErrorResponse(res, 500, "Internal server error", error);
+          return;
         });
 
       default:
-        return createErrorResponse(403, "Invalid credentials");
+        applyErrorResponse(res, 403, "Invalid credentials");
+        return;
     }
   });
 }
