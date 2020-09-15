@@ -14,7 +14,10 @@ export const handler = async (
   if (!Bucket || !Key) {
     const message = "S3 data not present in received event";
     console.error(message, event);
-    return createErrorResponse(400, message, event);
+    return {
+      statusCode: 400,
+      body: JSON.stringify(createErrorResponse(message, event)),
+    };
   }
 
   const maybeEvents = await getEventsFromS3File(Key);
@@ -22,12 +25,18 @@ export const handler = async (
   if (maybeEvents.error) {
     const message = `Invalid data in file with key ${Key}`;
     console.error(message, maybeEvents.error);
-    return createErrorResponse(400, message, maybeEvents.error);
+    return {
+      statusCode: 400,
+      body: JSON.stringify(createErrorResponse(message, maybeEvents.error)),
+    };
   }
 
   await putEventsToKinesisStream(maybeEvents.value);
 
   const message = `Written ${maybeEvents.value.length} events to Kinesis`;
   console.log(message);
-  return createOkResponse(201, message);
+  return {
+    statusCode: 201,
+    body: JSON.stringify(createOkResponse(message)),
+  };
 };
