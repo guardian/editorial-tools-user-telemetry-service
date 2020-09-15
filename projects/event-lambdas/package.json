@@ -1,5 +1,5 @@
 {
-  "name": "editions-logging",
+  "name": "ed-tools-user-telemetry-lambdas",
   "version": "0.0.1",
   "main": "src/index.js",
   "license": "MIT",
