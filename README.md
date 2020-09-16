@@ -9,9 +9,3 @@ In `/cdk`, run `npm i` to install dependencies, and `npm run synth` to generate 
 ## Deploying
 
 To release changes, deploy the `editorial-tools-user-telemetry-service` project in Riffraff.
-
-## Deploying
-
-To release changes, deploy the `editorial-tools-user-telemetry-service` project in Riffraff.
-
-
