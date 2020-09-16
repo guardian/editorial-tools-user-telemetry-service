@@ -56,6 +56,12 @@ export class TelemetryStack extends Stack {
         "Maximum size (in bytes) of log data from an individual request",
     });
 
+    const pandaSettingsKey = new CfnParameter(this, "PandaSettingsKey", {
+      type: "String",
+      description:
+        "The location of the pan-domain authentication settings file",
+    });
+
     /**
      * S3 bucket – where our telemetry data is persisted
      */
@@ -101,6 +107,10 @@ export class TelemetryStack extends Stack {
     const createTelemetryAPIFunction = () => {
       const fn = new lambda.Function(this, `EventApiLambda`, {
         ...commonLambdaParams,
+        environment: {
+          ...commonLambdaParams.environment,
+          PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString
+        },
         functionName: `event-api-lambda-${stageParameter.valueAsString}`,
         code: lambda.Code.bucket(
           deployBucket,

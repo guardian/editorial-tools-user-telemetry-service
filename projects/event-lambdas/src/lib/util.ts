@@ -8,6 +8,7 @@ import { Either } from "./types";
 import { s3, kinesis } from "./aws";
 import { telemetryBucketName, telemetryStreamName } from "./constants";
 
+
 const ajv = new Ajv();
 const validateEventApiInput = ajv.compile(eventApiInputSchema);
 
@@ -116,6 +117,7 @@ export const getEventsFromKinesisStream = async () => {
 };
 
 export const getYYYYmmddDate = (date: Date) => date.toISOString().split("T")[0];
+
 
 /**
  * Constructors for the Either type.

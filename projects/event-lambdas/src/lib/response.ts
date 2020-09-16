@@ -4,7 +4,7 @@ interface IResponse {
   data?: Object
 }
 
-export const createErrorResponse = (message: string, data: Object): IResponse => ({
+export const createErrorResponse = (message: string, data: Object = {}): IResponse => ({
   status: 'error',
   message,
   data
