@@ -8,10 +8,8 @@ export const createApp = (): express.Application => {
   const app = express();
 
   app.use((req, res, next) => {
-    console.log({ url: req.get('origin') });
     const host = req.get('origin') || '';
     if (host.endsWith(".gutools.co.uk") || host.endsWith(".dev-gutools.co.uk")) {
-      console.log("Adding headers");
       res.header("Access-Control-Allow-Headers", "Content-Type");
       res.header("Access-Control-Allow-Origin", req.get('origin'));
       res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
