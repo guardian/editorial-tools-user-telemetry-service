@@ -1,8 +1,15 @@
 {
   "name": "@guardian/user-telemetry-client",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guardian/editorial-tools-user-telemetry-service/"
+  },
   "scripts": {
     "build": "tsc --build"
   },
