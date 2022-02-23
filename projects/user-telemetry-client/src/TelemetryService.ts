@@ -51,5 +51,3 @@ export class UserTelemetryEventSender {
         return this.sendEvents();
     }
 }
-
- 
