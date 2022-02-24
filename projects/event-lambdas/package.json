@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "license": "MIT",
   "engines": {
-    "node": "^10.15"
+    "node": "^16.14"
   },
   "devDependencies": {
     "@guardian/node-riffraff-artifact": "^0.1.9",
@@ -12,7 +12,7 @@
     "@types/express": "^4.17.0",
     "@types/ndjson": "^2.0.0",
     "@types/uuid": "^8.3.0",
-    "@vercel/ncc": "^0.24.0",
+    "@vercel/ncc": "^0.33.3",
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
     "dotenv": "^8.0.0",

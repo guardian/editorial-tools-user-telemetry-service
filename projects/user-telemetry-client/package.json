@@ -1,0 +1,32 @@
+{
+  "name": "@guardian/user-telemetry-client",
+  "version": "1.0.1",
+  "main": "dist/user-telemetry-client/src/index.js",
+  "types": "dist/declaration/user-telemetry-client/src/index.d.ts",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/guardian/editorial-tools-user-telemetry-service/"
+  },
+  "scripts": {
+    "test": "jest --env=jsdom",
+    "build": "tsc --build",
+    "publish": "npm run test && npm run build && npm publish"
+  },
+  "devDependencies": {
+    "@types/fetch-mock": "^7.3.5",
+    "@types/jest": "^27.4.1",
+    "@types/lodash": "^4.14.161",
+    "fetch-mock": "^9.11.0",
+    "jest": "^27.5.1",
+    "node-fetch": "^2.6.7",
+    "ts-jest": "^27.1.3",
+    "typescript": "^4.0.2"
+  },
+  "dependencies": {
+    "lodash": "^4.17.20"
+  }
+}

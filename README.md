@@ -8,6 +8,10 @@ A service to receive telemetry events and pass them on to a kinesis stream. Desi
 
 In `/cdk`, run `npm i` to install dependencies, and `npm run synth` to generate cloudformation for the stack.
 
-## Deploying
+## Deploying the stack
 
 To release changes, deploy the `editorial-tools-user-telemetry-service` project in Riffraff.
+
+## Creating and deploying the package
+
+To create and deploy the associated npm package update the version number and then run `npm publish`.

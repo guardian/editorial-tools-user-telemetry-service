@@ -8,6 +8,14 @@ ROOT_DIR=${DIR}/..
 EVENT_API_LAMBDA_DIR="$ROOT_DIR/projects/event-lambdas"
 EVENT_API_LAMBDA_BUCKET_NAME=user-telemetry-service
 
+function setupNvm {
+  export NVM_DIR="$HOME/.nvm"
+  [[ -s "$NVM_DIR/nvm.sh" ]] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+
+  nvm install
+  nvm use
+}
+
 function setupEventApiLambda {
   cd $EVENT_API_LAMBDA_DIR
   docker-compose up -d
@@ -18,6 +26,8 @@ function setupEventApiLambda {
       && break
     sleep 5
   done
+
+  setupNvm
   npm i
   npm run test
   npm run build
