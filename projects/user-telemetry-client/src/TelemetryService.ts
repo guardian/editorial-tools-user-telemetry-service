@@ -1,11 +1,11 @@
 import throttle from 'lodash/throttle';
 import chunk from 'lodash/chunk';
 
-import { ITelemetryEvent } from "./ITelemetryData";
+import { IUserTelemetryEvent } from "./";
 
 export class UserTelemetryEventSender {
     private postEventLimit = 500;
-    private eventBuffer: ITelemetryEvent[] = [];
+    private eventBuffer: IUserTelemetryEvent[] = [];
 
     public constructor(private telemetryUrl: string, private throttleDelay: number = 10000) {};
 
@@ -42,7 +42,7 @@ export class UserTelemetryEventSender {
 
     private throttledSendEvents = throttle(this.sendEvents, this.throttleDelay, { trailing: true, leading: false })
 
-    public addEvent(event: ITelemetryEvent): void {
+    public addEvent(event: IUserTelemetryEvent): void {
       this.eventBuffer.push(event);
       this.throttledSendEvents();
     }
