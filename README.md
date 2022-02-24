@@ -14,4 +14,4 @@ To release changes, deploy the `editorial-tools-user-telemetry-service` project 
 
 ## Creating and deploying the package
 
-To create and deploy the associated npm package use `npm build`, update the version number and then run `npm publish`.
+To create and deploy the associated npm package update the version number and then run `npm publish`.

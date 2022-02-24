@@ -38,7 +38,6 @@ describe("TelemetryService", () => {
     setTimeout(() => {
       const calls = fetchMock.calls(endpoint);
       expect(calls.length).toBe(1);
-      expect(calls.length).toBe(2);
       done();
     }, 150);
   });

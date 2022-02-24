@@ -13,7 +13,8 @@
   },
   "scripts": {
     "test": "jest --env=jsdom",
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "publish": "npm run test && npm run build && npm publish"
   },
   "devDependencies": {
     "@types/fetch-mock": "^7.3.5",
