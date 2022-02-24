@@ -1,6 +1,6 @@
 {
   "name": "@guardian/user-telemetry-client",
-  "version": "0.0.2",
+  "version": "1.0.1",
   "main": "dist/user-telemetry-client/src/index.js",
   "types": "dist/declaration/user-telemetry-client/src/index.d.ts",
   "license": "MIT",
