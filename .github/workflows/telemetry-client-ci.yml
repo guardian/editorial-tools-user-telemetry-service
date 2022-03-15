@@ -4,7 +4,9 @@ on:
     push:
       paths:
        - 'projects/user-telemetry-client/**'
-    workflow_dispatch:
+    pull_request:
+      paths:
+       - 'projects/user-telemetry-client/**'
 
 jobs:
     ci:
@@ -19,15 +21,10 @@ jobs:
             working-directory: ./projects/user-telemetry-client
           - run: npm test
             working-directory: ./projects/user-telemetry-client
-    semantic-lint:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: amannn/action-semantic-pull-request@db6e259b93f286e3416eef27aaae88935d16cf2e
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     release:
       runs-on: ubuntu-latest
-      needs: [ci, semantic-lint]
+      needs: [ci]
       if: github.ref == 'refs/heads/main' ||  github.ref == 'refs/heads/beta'
       steps:
         - name: Checkout branch
