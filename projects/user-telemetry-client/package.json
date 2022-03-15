@@ -14,7 +14,6 @@
   "scripts": {
     "test": "jest --env=jsdom",
     "build": "tsc --build",
-    "deploy": "npm run test && npm run build && npm publish",
     "release": "semantic-release"
   },
   "devDependencies": {
