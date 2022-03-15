@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/guardian/editorial-tools-user-telemetry-service/"
+    "url": "https://github.com/guardian/editorial-tools-user-telemetry-service"
   },
   "scripts": {
     "test": "jest --env=jsdom",

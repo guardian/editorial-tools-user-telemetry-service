@@ -38,4 +38,7 @@ jobs:
           working-directory: ./projects/user-telemetry-client
         - run: npm run release
           working-directory: ./projects/user-telemetry-client
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
