@@ -1,0 +1,19 @@
+
+name: 'Telemetry Client CI'
+on:
+    pull_request:
+      types:
+              - opened
+              - edited
+              - synchronize
+      paths:
+       - 'projects/user-telemetry-client/**'
+       
+jobs:
+    semantic-lint:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: amannn/action-semantic-pull-request@db6e259b93f286e3416eef27aaae88935d16cf2e
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
