@@ -14,4 +14,4 @@ To release changes, deploy the `editorial-tools-user-telemetry-service` project 
 
 ## Creating and deploying the package
 
-To create and deploy the associated npm package update the version number and then run `npm deploy`.
+Deploying the package should be handled automatically when changes are made to the user-telemetry-client subproject. Asusming the PR / commits use the [conventional commits syntax](https://www.conventionalcommits.org/en/v1.0.0/).
