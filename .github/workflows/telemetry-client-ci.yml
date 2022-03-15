@@ -4,6 +4,9 @@ on:
     push:
       paths:
        - 'projects/user-telemetry-client/**'
+      branches:
+       - main
+       - beta
     pull_request:
       paths:
        - 'projects/user-telemetry-client/**'
