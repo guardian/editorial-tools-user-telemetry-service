@@ -1,4 +1,4 @@
-import fetchMock from "fetch-mock";
+import fetchMock, { MockCall } from "fetch-mock";
 
 import { UserTelemetryEventSender } from "../src/TelemetryService";
 import { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
@@ -6,6 +6,11 @@ import { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
 const url = "http://endpoint";
 const endpoint = `${url}/event`;
 const telemetryService = new UserTelemetryEventSender(url, 100);
+
+const mockCallToTelemetryEvent = (call: MockCall): IUserTelemetryEvent[] | undefined => {
+  const requestJsonBody = call[1]?.body?.toString();
+  return requestJsonBody ? JSON.parse(requestJsonBody) as IUserTelemetryEvent[] : undefined;
+}
 
 const exampleEvent: IUserTelemetryEvent = {
   app: "example-app",
@@ -40,6 +45,72 @@ describe("TelemetryService", () => {
       expect(calls.length).toBe(1);
       done();
     }, 150);
+  });
+
+  describe("when passed a value", () => {
+
+    it("should convert true values to 1", done => {
+
+      const booleanValueEvent = {
+        ...exampleEvent,
+        value: true
+      }
+
+      fetchMock.post(endpoint, {
+        status: 201
+      });
+      telemetryService.addEvent(booleanValueEvent);
+
+      setTimeout(() => {
+        const calls = fetchMock.calls(endpoint);
+        expect(calls.length).toBe(1);
+        const eventValue = mockCallToTelemetryEvent(calls[0])?.[0].value;
+        expect(eventValue).toBe(1);
+        done();
+      }, 150);
+    });
+
+    it("should convert false values to 0", done => {
+
+      const booleanValueEvent = {
+        ...exampleEvent,
+        value: false
+      }
+
+      fetchMock.post(endpoint, {
+        status: 201
+      });
+      telemetryService.addEvent(booleanValueEvent);
+
+      setTimeout(() => {
+        const calls = fetchMock.calls(endpoint);
+        expect(calls.length).toBe(1);
+        const eventValue = mockCallToTelemetryEvent(calls[0])?.[0].value;
+        expect(eventValue).toBe(0);
+        done();
+      }, 150);
+    });
+
+    it("should leave numeric values", done => {
+
+      const booleanValueEvent = {
+        ...exampleEvent,
+        value: 100
+      }
+
+      fetchMock.post(endpoint, {
+        status: 201
+      });
+      telemetryService.addEvent(booleanValueEvent);
+
+      setTimeout(() => {
+        const calls = fetchMock.calls(endpoint);
+        expect(calls.length).toBe(1);
+        const eventValue = mockCallToTelemetryEvent(calls[0])?.[0].value;
+        expect(eventValue).toBe(100);
+        done();
+      }, 150);
+    });
   });
 
   it("should only send one event for each throttle window", done => {
