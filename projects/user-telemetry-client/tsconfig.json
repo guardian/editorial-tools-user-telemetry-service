@@ -1,5 +1,4 @@
 {
-  "include": ["src/**/*", "../definitions/**/*"],
   "compilerOptions": {
     "target": "ES2019",
     "module": "commonjs",

@@ -43,7 +43,8 @@ export class UserTelemetryEventSender {
     private throttledSendEvents = throttle(this.sendEvents, this.throttleDelay, { trailing: true, leading: false })
 
     public addEvent(event: IUserTelemetryEvent): void {
-      this.eventBuffer.push(event);
+      const value = + event.value 
+      this.eventBuffer.push({ ...event, value });
       this.throttledSendEvents();
     }
 
