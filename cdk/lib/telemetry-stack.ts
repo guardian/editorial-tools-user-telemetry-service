@@ -68,7 +68,7 @@ export class TelemetryStack extends GuStack {
       encryption: BucketEncryption.KMS_MANAGED,
       publicReadAccess: false,
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: RemovalPolicy.DESTROY,
+      removalPolicy: RemovalPolicy.RETAIN,
     });
 
     /**
@@ -82,7 +82,7 @@ export class TelemetryStack extends GuStack {
     );
 
     const commonLambdaParams = {
-      runtime: lambda.Runtime.NODEJS_12_X,
+      runtime: lambda.Runtime.NODEJS_14_X,
       memorySize: 128,
       timeout: Duration.seconds(5),
       handler: "index.handler",

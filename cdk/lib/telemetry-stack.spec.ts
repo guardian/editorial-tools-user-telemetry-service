@@ -4,12 +4,12 @@ import { App } from "@aws-cdk/core";
 import { TelemetryStack } from "./telemetry-stack";
 
 describe("The telemetry stack", () => {
-    it("matches the snapshot", () => {
-        const app = new App();
-        const stack = new TelemetryStack(app, "telemetry", {
-            stack: "flexible",
-        });
+  it("matches the snapshot", () => {
+    const app = new App();
+    const stack = new TelemetryStack(app, "telemetry", {
+      stack: "flexible",
+    });
 
-        expect(SynthUtils.toCloudFormation(stack)).toMatchSnapshot();
-    })
-})
+    expect(SynthUtils.toCloudFormation(stack)).toMatchSnapshot();
+  });
+});
