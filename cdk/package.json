@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "synth": "cdk synth > cloudformation.yaml"
+    "synth": "cdk synth --path-metadata false --version-reporting false"
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.147.0",
@@ -18,9 +18,9 @@
     "@types/node": "10.17.5",
     "aws-cdk": "1.147.0",
     "jest": "^27.5.1",
-    "ts-jest": "^24.1.0",
+    "ts-jest": "^27.1.3",
     "ts-node": "^10.7.0",
-    "typescript": "~3.7.2"
+    "typescript": "^4.6.2"
   },
   "dependencies": {
     "@aws-cdk/aws-apigateway": "1.147.0",
