@@ -1,13 +1,18 @@
 import {
-  Stack,
   Construct,
-  StackProps,
   CfnOutput,
   Duration,
   Tag,
   CfnParameter,
   RemovalPolicy,
+  App,
 } from "@aws-cdk/core";
+import type { GuStackProps } from "@guardian/cdk/lib/constructs/core/stack";
+import { GuStack } from "@guardian/cdk/lib/constructs/core/stack";
+import {
+  GuDnsRecordSet,
+  RecordType,
+} from "@guardian/cdk/lib/constructs/dns/dns-records";
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as lambda from "@aws-cdk/aws-lambda";
 import * as s3 from "@aws-cdk/aws-s3";
@@ -16,33 +21,24 @@ import * as kinesis from "@aws-cdk/aws-kinesis";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
+import { CertificateValidation } from "@aws-cdk/aws-certificatemanager";
 
-export class TelemetryStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+export class TelemetryStack extends GuStack {
+  constructor(scope: App, id: string, props: GuStackProps) {
     super(scope, id, props);
 
     /**
      * Parameters
      */
 
-    const stackParameter = new CfnParameter(this, "Stack", {
-      type: "String",
-      description: "Stack",
-    });
-
-    const stageParameter = new CfnParameter(this, "Stage", {
-      type: "String",
-      description: "Stage",
-    });
-
-    const telemetryHostName = new CfnParameter(this, "Hostname", {
+    const telemetryHostNameCODE = new CfnParameter(this, "HostnameCODE", {
       type: "String",
       description: "Hostname for telemetry endpoint",
     });
 
-    const telemetryCertificateArn = new CfnParameter(this, "CertificateArn", {
+    const telemetryHostNamePROD = new CfnParameter(this, "HostnamePROD", {
       type: "String",
-      description: "ARN of ACM certificate for telemetry endpoint",
+      description: "Hostname for telemetry endpoint",
     });
 
     const kinesisStreamArn = new CfnParameter(this, "KinesisArn", {
@@ -91,8 +87,8 @@ export class TelemetryStack extends Stack {
       timeout: Duration.seconds(5),
       handler: "index.handler",
       environment: {
-        STAGE: stageParameter.valueAsString,
-        STACK: stackParameter.valueAsString,
+        STAGE: this.stage,
+        STACK: this.stack,
         APP: "tools-telemetry",
         MAX_LOG_SIZE: maxLogSize.valueAsString,
         LOG_ENDPOINT_ENABLED: "true",
@@ -109,17 +105,17 @@ export class TelemetryStack extends Stack {
         ...commonLambdaParams,
         environment: {
           ...commonLambdaParams.environment,
-          PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString
+          PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString,
         },
-        functionName: `event-api-lambda-${stageParameter.valueAsString}`,
+        functionName: `event-api-lambda-${this.stage}`,
         code: lambda.Code.bucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
+          `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
       });
       Tag.add(fn, "App", "tools-telemetry");
-      Tag.add(fn, "Stage", stageParameter.valueAsString);
-      Tag.add(fn, "Stack", stackParameter.valueAsString);
+      Tag.add(fn, "Stage", this.stage);
+      Tag.add(fn, "Stack", this.stack);
       return fn;
     };
 
@@ -149,10 +145,10 @@ export class TelemetryStack extends Stack {
     const createTelemetryS3Function = () => {
       const fn = new lambda.Function(this, `EventS3Lambda`, {
         ...commonLambdaParams,
-        functionName: `event-s3-lambda-${stageParameter.valueAsString}`,
+        functionName: `event-s3-lambda-${this.stage}`,
         code: lambda.Code.bucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
+          `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
         environment: {
           ...commonLambdaParams.environment,
@@ -160,8 +156,8 @@ export class TelemetryStack extends Stack {
         },
       });
       Tag.add(fn, "App", "tools-telemetry");
-      Tag.add(fn, "Stage", stageParameter.valueAsString);
-      Tag.add(fn, "Stack", stackParameter.valueAsString);
+      Tag.add(fn, "Stage", this.stage);
+      Tag.add(fn, "Stack", this.stack);
 
       // Notify our lambda when new objects are added to the telemetry bucket
       telemetryDataBucket.addEventNotification(
@@ -215,27 +211,45 @@ export class TelemetryStack extends Stack {
       },
     });
 
-    const telemetryCertificate = acm.Certificate.fromCertificateArn(
-      this,
-      "user-telemetry-certificate",
-      telemetryCertificateArn.valueAsString
-    );
+    const createEndpointForStage = (
+      stage: string,
+      telemetryHostname: CfnParameter
+    ) => {
+      const telemetryCertificate = new acm.Certificate(
+        this,
+        `telemetry-cert-${stage}`,
+        {
+          domainName: telemetryHostname.valueAsString,
+          validation: CertificateValidation.fromDns(),
+        }
+      );
 
-    const telemetryDomainName = new apigateway.DomainName(
-      this,
-      "user-telemetry-domain-name",
-      {
-        domainName: telemetryHostName.valueAsString,
-        certificate: telemetryCertificate,
-        endpointType: apigateway.EndpointType.EDGE,
-      }
-    );
+      const telemetryDomainName = new apigateway.DomainName(
+        this,
+        `user-telemetry-domain-name-${stage}`,
+        {
+          domainName: telemetryHostname.valueAsString,
+          certificate: telemetryCertificate,
+          endpointType: apigateway.EndpointType.EDGE,
+        }
+      );
 
-    telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
+      telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-    new CfnOutput(this, "user-telemetry-api-target-hostname", {
-      description: "hostname",
-      value: `${telemetryDomainName.domainNameAliasDomainName}`,
-    });
+      new CfnOutput(this, `user-telemetry-api-target-hostname-${stage}`, {
+        description: `hostname-${stage}`,
+        value: `${telemetryDomainName.domainNameAliasDomainName}`,
+      });
+
+      new GuDnsRecordSet(this, `telemetry-dns-record-${stage}`, {
+        name: telemetryHostname.valueAsString,
+        recordType: RecordType.CNAME,
+        resourceRecords: [telemetryDomainName.domainName],
+        ttl: Duration.minutes(60),
+      });
+    };
+
+    createEndpointForStage("code", telemetryHostNameCODE);
+    createEndpointForStage("prod", telemetryHostNamePROD);
   }
 }

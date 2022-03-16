@@ -6,7 +6,9 @@ import { TelemetryStack } from "./telemetry-stack";
 describe("The telemetry stack", () => {
     it("matches the snapshot", () => {
         const app = new App();
-        const stack = new TelemetryStack(app, "telemetry");
+        const stack = new TelemetryStack(app, "telemetry", {
+            stack: "flexible",
+        });
 
         expect(SynthUtils.toCloudFormation(stack)).toMatchSnapshot();
     })
