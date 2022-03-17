@@ -1,12 +1,4 @@
-import {
-  Construct,
-  CfnOutput,
-  Duration,
-  Tag,
-  CfnParameter,
-  RemovalPolicy,
-  App,
-} from "@aws-cdk/core";
+import { Duration, Tag, CfnParameter, App } from "@aws-cdk/core";
 import type { GuStackProps } from "@guardian/cdk/lib/constructs/core/stack";
 import { GuStack } from "@guardian/cdk/lib/constructs/core/stack";
 import {
@@ -245,15 +237,10 @@ export class TelemetryStack extends GuStack {
 
       telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-      new CfnOutput(this, `user-telemetry-api-target-hostname-${stage}`, {
-        description: `hostname-${stage}`,
-        value: `${telemetryDomainName.domainNameAliasDomainName}`,
-      });
-
       new GuDnsRecordSet(this, `telemetry-dns-record-${stage}`, {
         name: telemetryHostname.valueAsString,
         recordType: RecordType.CNAME,
-        resourceRecords: [telemetryDomainName.domainName],
+        resourceRecords: [telemetryDomainName.domainNameAliasDomainName],
         ttl: Duration.seconds(3600),
       });
     };
