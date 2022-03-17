@@ -20,7 +20,7 @@ import * as s3n from "@aws-cdk/aws-s3-notifications";
 import * as kinesis from "@aws-cdk/aws-kinesis";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
-import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
+import { Bucket } from "@aws-cdk/aws-s3";
 import { CertificateValidation } from "@aws-cdk/aws-certificatemanager";
 
 export class TelemetryStack extends GuStack {
@@ -33,12 +33,27 @@ export class TelemetryStack extends GuStack {
 
     const telemetryHostNameCODE = new CfnParameter(this, "HostnameCODE", {
       type: "String",
-      description: "Hostname for telemetry endpoint",
+      description: "Hostname for CODE telemetry endpoint",
     });
 
     const telemetryHostNamePROD = new CfnParameter(this, "HostnamePROD", {
       type: "String",
-      description: "Hostname for telemetry endpoint",
+      description: "Hostname for PROD telemetry endpoint",
+    });
+
+    const telemetryCertCODE = new CfnParameter(this, "CertCODE", {
+      type: "String",
+      description: "Certificate ARN for CODE telemetry endpoint",
+    });
+
+    const telemetryCertPROD = new CfnParameter(this, "CertPROD", {
+      type: "String",
+      description: "Certificate ARN for PROD telemetry endpoint",
+    });
+
+    const bucketName = new CfnParameter(this, "BucketName", {
+      type: "String",
+      description: "Name of the bucket to persist event data",
     });
 
     const kinesisStreamArn = new CfnParameter(this, "KinesisArn", {
@@ -61,15 +76,11 @@ export class TelemetryStack extends GuStack {
     /**
      * S3 bucket – where our telemetry data is persisted
      */
-
-    const telemetryDataBucket = new Bucket(this, "user-telemetry-data-bucket", {
-      versioned: false,
-      bucketName: "user-telemetry-data",
-      encryption: BucketEncryption.KMS_MANAGED,
-      publicReadAccess: false,
-      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: RemovalPolicy.RETAIN,
-    });
+    const telemetryDataBucket = Bucket.fromBucketName(
+      this,
+      "telemetry-bucket",
+      bucketName.valueAsString
+    );
 
     /**
      * Lambda
@@ -213,15 +224,13 @@ export class TelemetryStack extends GuStack {
 
     const createEndpointForStage = (
       stage: string,
-      telemetryHostname: CfnParameter
+      telemetryHostname: CfnParameter,
+      telemetryCert: CfnParameter
     ) => {
-      const telemetryCertificate = new acm.Certificate(
+      const telemetryCertificate = acm.Certificate.fromCertificateArn(
         this,
         `telemetry-cert-${stage}`,
-        {
-          domainName: telemetryHostname.valueAsString,
-          validation: CertificateValidation.fromDns(),
-        }
+        telemetryCert.valueAsString
       );
 
       const telemetryDomainName = new apigateway.DomainName(
@@ -245,11 +254,11 @@ export class TelemetryStack extends GuStack {
         name: telemetryHostname.valueAsString,
         recordType: RecordType.CNAME,
         resourceRecords: [telemetryDomainName.domainName],
-        ttl: Duration.minutes(60),
+        ttl: Duration.seconds(3600),
       });
     };
 
-    createEndpointForStage("code", telemetryHostNameCODE);
-    createEndpointForStage("prod", telemetryHostNamePROD);
+    createEndpointForStage("code", telemetryHostNameCODE, telemetryCertCODE);
+    createEndpointForStage("prod", telemetryHostNamePROD, telemetryCertPROD);
   }
 }
