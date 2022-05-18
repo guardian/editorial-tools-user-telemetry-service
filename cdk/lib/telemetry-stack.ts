@@ -13,34 +13,24 @@ import * as kinesis from "@aws-cdk/aws-kinesis";
 import * as iam from "@aws-cdk/aws-iam";
 import * as acm from "@aws-cdk/aws-certificatemanager";
 import { Bucket } from "@aws-cdk/aws-s3";
-import { CertificateValidation } from "@aws-cdk/aws-certificatemanager";
 
 export class TelemetryStack extends GuStack {
   constructor(scope: App, id: string, props: GuStackProps) {
     super(scope, id, props);
 
+    const appName = "user-telemetry";
+
     /**
      * Parameters
      */
-
-    const telemetryHostNameCODE = new CfnParameter(this, "HostnameCODE", {
+    const telemetryHostName = new CfnParameter(this, "Hostname", {
       type: "String",
-      description: "Hostname for CODE telemetry endpoint",
+      description: "Hostname for telemetry endpoint",
     });
 
-    const telemetryHostNamePROD = new CfnParameter(this, "HostnamePROD", {
+    const telemetryCert = new CfnParameter(this, "Cert", {
       type: "String",
-      description: "Hostname for PROD telemetry endpoint",
-    });
-
-    const telemetryCertCODE = new CfnParameter(this, "CertCODE", {
-      type: "String",
-      description: "Certificate ARN for CODE telemetry endpoint",
-    });
-
-    const telemetryCertPROD = new CfnParameter(this, "CertPROD", {
-      type: "String",
-      description: "Certificate ARN for PROD telemetry endpoint",
+      description: "Certificate ARN for telemetry endpoint",
     });
 
     const bucketName = new CfnParameter(this, "BucketName", {
@@ -92,7 +82,7 @@ export class TelemetryStack extends GuStack {
       environment: {
         STAGE: this.stage,
         STACK: this.stack,
-        APP: "tools-telemetry",
+        APP: appName,
         MAX_LOG_SIZE: maxLogSize.valueAsString,
         LOG_ENDPOINT_ENABLED: "true",
         TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
@@ -116,7 +106,7 @@ export class TelemetryStack extends GuStack {
           `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
       });
-      Tag.add(fn, "App", "tools-telemetry");
+      Tag.add(fn, "App", appName);
       Tag.add(fn, "Stage", this.stage);
       Tag.add(fn, "Stack", this.stack);
       return fn;
@@ -158,7 +148,7 @@ export class TelemetryStack extends GuStack {
           TELEMETRY_STREAM_NAME: kinesisStream.streamName,
         },
       });
-      Tag.add(fn, "App", "tools-telemetry");
+      Tag.add(fn, "App", appName);
       Tag.add(fn, "Stage", this.stage);
       Tag.add(fn, "Stack", this.stack);
 
@@ -203,7 +193,7 @@ export class TelemetryStack extends GuStack {
     });
     telemetryApiPolicyStatement.addAnyPrincipal();
 
-    const telemetryApi = new apigateway.LambdaRestApi(this, "tools-telemetry", {
+    const telemetryApi = new apigateway.LambdaRestApi(this, appName, {
       handler: telemetryAPIFunction,
       endpointTypes: [apigateway.EndpointType.EDGE],
       policy: new iam.PolicyDocument({
@@ -214,38 +204,29 @@ export class TelemetryStack extends GuStack {
       },
     });
 
-    const createEndpointForStage = (
-      stage: string,
-      telemetryHostname: CfnParameter,
-      telemetryCert: CfnParameter
-    ) => {
-      const telemetryCertificate = acm.Certificate.fromCertificateArn(
-        this,
-        `telemetry-cert-${stage}`,
-        telemetryCert.valueAsString
-      );
+    const telemetryCertificate = acm.Certificate.fromCertificateArn(
+      this,
+      `telemetry-cert-${this.stage}`,
+      telemetryCert.valueAsString
+    );
 
-      const telemetryDomainName = new apigateway.DomainName(
-        this,
-        `user-telemetry-domain-name-${stage}`,
-        {
-          domainName: telemetryHostname.valueAsString,
-          certificate: telemetryCertificate,
-          endpointType: apigateway.EndpointType.EDGE,
-        }
-      );
+    const telemetryDomainName = new apigateway.DomainName(
+      this,
+      `user-telemetry-domain-name-${this.stage}`,
+      {
+        domainName: telemetryHostName.valueAsString,
+        certificate: telemetryCertificate,
+        endpointType: apigateway.EndpointType.EDGE,
+      }
+    );
 
-      telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
+    telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-      new GuDnsRecordSet(this, `telemetry-dns-record-${stage}`, {
-        name: telemetryHostname.valueAsString,
-        recordType: RecordType.CNAME,
-        resourceRecords: [telemetryDomainName.domainNameAliasDomainName],
-        ttl: Duration.seconds(3600),
-      });
-    };
-
-    createEndpointForStage("code", telemetryHostNameCODE, telemetryCertCODE);
-    createEndpointForStage("prod", telemetryHostNamePROD, telemetryCertPROD);
+    new GuDnsRecordSet(this, `telemetry-dns-record-${this.stage}`, {
+      name: telemetryHostName.valueAsString,
+      recordType: RecordType.CNAME,
+      resourceRecords: [telemetryDomainName.domainNameAliasDomainName],
+      ttl: Duration.seconds(3600),
+    });
   }
 }
