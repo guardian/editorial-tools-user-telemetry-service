@@ -1,7 +1,15 @@
 #!/usr/bin/env node
+import { App } from "aws-cdk-lib";
 import "source-map-support/register";
-import * as cdk from "@aws-cdk/core";
 import { TelemetryStack } from "../lib/telemetry-stack";
 
-const app = new cdk.App();
-new TelemetryStack(app, "TelemetryStack", { stack: "flexible" });
+const app = new App();
+
+new TelemetryStack(app, "TelemetryStackPROD", {
+  stack: "flexible",
+  stage: "PROD",
+});
+new TelemetryStack(app, "TelemetryStackCODE", {
+  stack: "flexible",
+  stage: "CODE",
+});

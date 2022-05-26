@@ -1,18 +1,17 @@
-import { Duration, Tag, CfnParameter, App } from "@aws-cdk/core";
 import type { GuStackProps } from "@guardian/cdk/lib/constructs/core/stack";
 import { GuStack } from "@guardian/cdk/lib/constructs/core/stack";
 import {
   GuDnsRecordSet,
   RecordType,
 } from "@guardian/cdk/lib/constructs/dns/dns-records";
-import * as apigateway from "@aws-cdk/aws-apigateway";
-import * as lambda from "@aws-cdk/aws-lambda";
-import * as s3 from "@aws-cdk/aws-s3";
-import * as s3n from "@aws-cdk/aws-s3-notifications";
-import * as kinesis from "@aws-cdk/aws-kinesis";
-import * as iam from "@aws-cdk/aws-iam";
-import * as acm from "@aws-cdk/aws-certificatemanager";
-import { Bucket } from "@aws-cdk/aws-s3";
+import { App, CfnParameter, Duration, Tags } from "aws-cdk-lib";
+import { DomainName, EndpointType, LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
+import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
+import { Effect, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Stream } from "aws-cdk-lib/aws-kinesis";
+import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Bucket, EventType } from "aws-cdk-lib/aws-s3";
+import { LambdaDestination } from "aws-cdk-lib/aws-s3-notifications";
 
 export class TelemetryStack extends GuStack {
   constructor(scope: App, id: string, props: GuStackProps) {
@@ -68,14 +67,14 @@ export class TelemetryStack extends GuStack {
      * Lambda
      */
 
-    const deployBucket = s3.Bucket.fromBucketName(
+    const deployBucket = Bucket.fromBucketName(
       this,
       "composer-dist",
       "composer-dist"
     );
 
     const commonLambdaParams = {
-      runtime: lambda.Runtime.NODEJS_14_X,
+      runtime: Runtime.NODEJS_14_X,
       memorySize: 128,
       timeout: Duration.seconds(5),
       handler: "index.handler",
@@ -94,28 +93,29 @@ export class TelemetryStack extends GuStack {
      */
 
     const createTelemetryAPIFunction = () => {
-      const fn = new lambda.Function(this, `EventApiLambda`, {
+      const fn = new Function(this, `EventApiLambda`, {
         ...commonLambdaParams,
         environment: {
           ...commonLambdaParams.environment,
           PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString,
         },
         functionName: `event-api-lambda-${this.stage}`,
-        code: lambda.Code.bucket(
+        code: Code.fromBucket(
           deployBucket,
           `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
       });
-      Tag.add(fn, "App", appName);
-      Tag.add(fn, "Stage", this.stage);
-      Tag.add(fn, "Stack", this.stack);
+      const fnTags = Tags.of(fn)
+      fnTags.add("App", appName)
+      fnTags.add("Stage", this.stage)
+      fnTags.add("Stack", this.stack);
       return fn;
     };
 
     const telemetryAPIFunction = createTelemetryAPIFunction();
 
-    const telemetryBackendPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryBackendPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["s3:PutObject"],
       resources: [
         telemetryDataBucket.bucketArn,
@@ -129,17 +129,17 @@ export class TelemetryStack extends GuStack {
      * S3 event handler lambda
      */
 
-    const kinesisStream = kinesis.Stream.fromStreamArn(
+    const kinesisStream = Stream.fromStreamArn(
       this,
       "user-telemetry-kinesis-stream",
       kinesisStreamArn.valueAsString
     );
 
     const createTelemetryS3Function = () => {
-      const fn = new lambda.Function(this, `EventS3Lambda`, {
+      const fn = new Function(this, `EventS3Lambda`, {
         ...commonLambdaParams,
         functionName: `event-s3-lambda-${this.stage}`,
-        code: lambda.Code.bucket(
+        code: Code.fromBucket(
           deployBucket,
           `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
@@ -148,14 +148,15 @@ export class TelemetryStack extends GuStack {
           TELEMETRY_STREAM_NAME: kinesisStream.streamName,
         },
       });
-      Tag.add(fn, "App", appName);
-      Tag.add(fn, "Stage", this.stage);
-      Tag.add(fn, "Stack", this.stack);
+      const fnTags = Tags.of(fn)
+      fnTags.add("App", appName)
+      fnTags.add("Stage", this.stage)
+      fnTags.add("Stack", this.stack);
 
       // Notify our lambda when new objects are added to the telemetry bucket
       telemetryDataBucket.addEventNotification(
-        s3.EventType.OBJECT_CREATED,
-        new s3n.LambdaDestination(fn)
+        EventType.OBJECT_CREATED,
+        new LambdaDestination(fn)
       );
 
       return fn;
@@ -163,16 +164,16 @@ export class TelemetryStack extends GuStack {
 
     const telemetryS3Function = createTelemetryS3Function();
 
-    const telemetryS3FunctionS3PolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryS3FunctionS3PolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["s3:GetObject"],
       resources: [
         telemetryDataBucket.bucketArn,
         `${telemetryDataBucket.bucketArn}/*`,
       ],
     });
-    const telemetryS3FunctionKinesisPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryS3FunctionKinesisPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["kinesis:PutRecords"],
       resources: [kinesisStreamArn.valueAsString],
     });
@@ -186,17 +187,17 @@ export class TelemetryStack extends GuStack {
      * API Gateway
      */
 
-    const telemetryApiPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryApiPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["execute-api:Invoke"],
       resources: ["*"],
     });
     telemetryApiPolicyStatement.addAnyPrincipal();
 
-    const telemetryApi = new apigateway.LambdaRestApi(this, appName, {
+    const telemetryApi = new LambdaRestApi(this, appName, {
       handler: telemetryAPIFunction,
-      endpointTypes: [apigateway.EndpointType.EDGE],
-      policy: new iam.PolicyDocument({
+      endpointTypes: [EndpointType.EDGE],
+      policy: new PolicyDocument({
         statements: [telemetryApiPolicyStatement],
       }),
       defaultMethodOptions: {
@@ -204,19 +205,19 @@ export class TelemetryStack extends GuStack {
       },
     });
 
-    const telemetryCertificate = acm.Certificate.fromCertificateArn(
+    const telemetryCertificate = Certificate.fromCertificateArn(
       this,
       `telemetry-cert-${this.stage}`,
       telemetryCert.valueAsString
     );
 
-    const telemetryDomainName = new apigateway.DomainName(
+    const telemetryDomainName = new DomainName(
       this,
       `user-telemetry-domain-name-${this.stage}`,
       {
         domainName: telemetryHostName.valueAsString,
         certificate: telemetryCertificate,
-        endpointType: apigateway.EndpointType.EDGE,
+        endpointType: EndpointType.EDGE,
       }
     );
 
