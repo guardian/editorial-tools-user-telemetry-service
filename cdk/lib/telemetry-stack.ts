@@ -141,7 +141,7 @@ export class TelemetryStack extends GuStack {
         functionName: `event-s3-lambda-${this.stage}`,
         code: Code.fromBucket(
           deployBucket,
-          `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
+          `${this.stack}/${this.stage}/event-s3-lambda/event-s3-lambda.zip`
         ),
         environment: {
           ...commonLambdaParams.environment,
