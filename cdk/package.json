@@ -9,27 +9,20 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "synth": "cdk synth > cloudformation.yaml"
+    "synth": "cdk synth --path-metadata false --version-reporting false"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "^1.61.1",
-    "@types/jest": "^24.0.22",
+    "@aws-cdk/assert": "1.147.0",
+    "@guardian/cdk": "^45.0.0",
+    "@types/jest": "^27.4.1",
     "@types/node": "10.17.5",
-    "aws-cdk": "^1.61.1",
-    "jest": "^24.9.0",
-    "ts-jest": "^24.1.0",
-    "ts-node": "^8.1.0",
-    "typescript": "~3.7.2"
+    "aws-cdk-lib": "^2.25.0",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.3",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.2"
   },
   "dependencies": {
-    "@aws-cdk/aws-apigateway": "^1.61.1",
-    "@aws-cdk/aws-certificatemanager": "^1.61.1",
-    "@aws-cdk/aws-iam": "^1.61.1",
-    "@aws-cdk/aws-kinesis": "^1.61.1",
-    "@aws-cdk/aws-lambda": "^1.61.1",
-    "@aws-cdk/aws-s3": "^1.61.1",
-    "@aws-cdk/aws-s3-notifications": "^1.61.1",
-    "@aws-cdk/core": "^1.61.1",
     "source-map-support": "^0.5.16"
   }
 }

@@ -1,48 +1,40 @@
+import type { GuStackProps } from "@guardian/cdk/lib/constructs/core/stack";
+import { GuStack } from "@guardian/cdk/lib/constructs/core/stack";
 import {
-  Stack,
-  Construct,
-  StackProps,
-  CfnOutput,
-  Duration,
-  Tag,
-  CfnParameter,
-  RemovalPolicy,
-} from "@aws-cdk/core";
-import * as apigateway from "@aws-cdk/aws-apigateway";
-import * as lambda from "@aws-cdk/aws-lambda";
-import * as s3 from "@aws-cdk/aws-s3";
-import * as s3n from "@aws-cdk/aws-s3-notifications";
-import * as kinesis from "@aws-cdk/aws-kinesis";
-import * as iam from "@aws-cdk/aws-iam";
-import * as acm from "@aws-cdk/aws-certificatemanager";
-import { BucketEncryption, BlockPublicAccess, Bucket } from "@aws-cdk/aws-s3";
+  GuDnsRecordSet,
+  RecordType,
+} from "@guardian/cdk/lib/constructs/dns/dns-records";
+import { App, CfnParameter, Duration, Tags } from "aws-cdk-lib";
+import { DomainName, EndpointType, LambdaRestApi } from "aws-cdk-lib/aws-apigateway";
+import { Certificate } from "aws-cdk-lib/aws-certificatemanager";
+import { Effect, PolicyDocument, PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Stream } from "aws-cdk-lib/aws-kinesis";
+import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Bucket, EventType } from "aws-cdk-lib/aws-s3";
+import { LambdaDestination } from "aws-cdk-lib/aws-s3-notifications";
 
-export class TelemetryStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+export class TelemetryStack extends GuStack {
+  constructor(scope: App, id: string, props: GuStackProps) {
     super(scope, id, props);
+
+    const appName = "user-telemetry";
 
     /**
      * Parameters
      */
-
-    const stackParameter = new CfnParameter(this, "Stack", {
-      type: "String",
-      description: "Stack",
-    });
-
-    const stageParameter = new CfnParameter(this, "Stage", {
-      type: "String",
-      description: "Stage",
-    });
-
     const telemetryHostName = new CfnParameter(this, "Hostname", {
       type: "String",
       description: "Hostname for telemetry endpoint",
     });
 
-    const telemetryCertificateArn = new CfnParameter(this, "CertificateArn", {
+    const telemetryCert = new CfnParameter(this, "Cert", {
       type: "String",
-      description: "ARN of ACM certificate for telemetry endpoint",
+      description: "Certificate ARN for telemetry endpoint",
+    });
+
+    const bucketName = new CfnParameter(this, "BucketName", {
+      type: "String",
+      description: "Name of the bucket to persist event data",
     });
 
     const kinesisStreamArn = new CfnParameter(this, "KinesisArn", {
@@ -65,35 +57,31 @@ export class TelemetryStack extends Stack {
     /**
      * S3 bucket – where our telemetry data is persisted
      */
-
-    const telemetryDataBucket = new Bucket(this, "user-telemetry-data-bucket", {
-      versioned: false,
-      bucketName: "user-telemetry-data",
-      encryption: BucketEncryption.KMS_MANAGED,
-      publicReadAccess: false,
-      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
+    const telemetryDataBucket = Bucket.fromBucketName(
+      this,
+      "telemetry-bucket",
+      bucketName.valueAsString
+    );
 
     /**
      * Lambda
      */
 
-    const deployBucket = s3.Bucket.fromBucketName(
+    const deployBucket = Bucket.fromBucketName(
       this,
       "composer-dist",
       "composer-dist"
     );
 
     const commonLambdaParams = {
-      runtime: lambda.Runtime.NODEJS_12_X,
+      runtime: Runtime.NODEJS_14_X,
       memorySize: 128,
       timeout: Duration.seconds(5),
       handler: "index.handler",
       environment: {
-        STAGE: stageParameter.valueAsString,
-        STACK: stackParameter.valueAsString,
-        APP: "tools-telemetry",
+        STAGE: this.stage,
+        STACK: this.stack,
+        APP: appName,
         MAX_LOG_SIZE: maxLogSize.valueAsString,
         LOG_ENDPOINT_ENABLED: "true",
         TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
@@ -105,28 +93,29 @@ export class TelemetryStack extends Stack {
      */
 
     const createTelemetryAPIFunction = () => {
-      const fn = new lambda.Function(this, `EventApiLambda`, {
+      const fn = new Function(this, `EventApiLambda`, {
         ...commonLambdaParams,
         environment: {
           ...commonLambdaParams.environment,
-          PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString
+          PANDA_SETTINGS_KEY: pandaSettingsKey.valueAsString,
         },
-        functionName: `event-api-lambda-${stageParameter.valueAsString}`,
-        code: lambda.Code.bucket(
+        functionName: `event-api-lambda-${this.stage}`,
+        code: Code.fromBucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
+          `${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`
         ),
       });
-      Tag.add(fn, "App", "tools-telemetry");
-      Tag.add(fn, "Stage", stageParameter.valueAsString);
-      Tag.add(fn, "Stack", stackParameter.valueAsString);
+      const fnTags = Tags.of(fn)
+      fnTags.add("App", appName)
+      fnTags.add("Stage", this.stage)
+      fnTags.add("Stack", this.stack);
       return fn;
     };
 
     const telemetryAPIFunction = createTelemetryAPIFunction();
 
-    const telemetryBackendPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryBackendPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["s3:PutObject"],
       resources: [
         telemetryDataBucket.bucketArn,
@@ -140,33 +129,34 @@ export class TelemetryStack extends Stack {
      * S3 event handler lambda
      */
 
-    const kinesisStream = kinesis.Stream.fromStreamArn(
+    const kinesisStream = Stream.fromStreamArn(
       this,
       "user-telemetry-kinesis-stream",
       kinesisStreamArn.valueAsString
     );
 
     const createTelemetryS3Function = () => {
-      const fn = new lambda.Function(this, `EventS3Lambda`, {
+      const fn = new Function(this, `EventS3Lambda`, {
         ...commonLambdaParams,
-        functionName: `event-s3-lambda-${stageParameter.valueAsString}`,
-        code: lambda.Code.bucket(
+        functionName: `event-s3-lambda-${this.stage}`,
+        code: Code.fromBucket(
           deployBucket,
-          `${stackParameter.valueAsString}/${stageParameter.valueAsString}/event-api-lambda/event-api-lambda.zip`
+          `${this.stack}/${this.stage}/event-s3-lambda/event-s3-lambda.zip`
         ),
         environment: {
           ...commonLambdaParams.environment,
           TELEMETRY_STREAM_NAME: kinesisStream.streamName,
         },
       });
-      Tag.add(fn, "App", "tools-telemetry");
-      Tag.add(fn, "Stage", stageParameter.valueAsString);
-      Tag.add(fn, "Stack", stackParameter.valueAsString);
+      const fnTags = Tags.of(fn)
+      fnTags.add("App", appName)
+      fnTags.add("Stage", this.stage)
+      fnTags.add("Stack", this.stack);
 
       // Notify our lambda when new objects are added to the telemetry bucket
       telemetryDataBucket.addEventNotification(
-        s3.EventType.OBJECT_CREATED,
-        new s3n.LambdaDestination(fn)
+        EventType.OBJECT_CREATED,
+        new LambdaDestination(fn)
       );
 
       return fn;
@@ -174,16 +164,16 @@ export class TelemetryStack extends Stack {
 
     const telemetryS3Function = createTelemetryS3Function();
 
-    const telemetryS3FunctionS3PolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryS3FunctionS3PolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["s3:GetObject"],
       resources: [
         telemetryDataBucket.bucketArn,
         `${telemetryDataBucket.bucketArn}/*`,
       ],
     });
-    const telemetryS3FunctionKinesisPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryS3FunctionKinesisPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["kinesis:PutRecords"],
       resources: [kinesisStreamArn.valueAsString],
     });
@@ -197,17 +187,17 @@ export class TelemetryStack extends Stack {
      * API Gateway
      */
 
-    const telemetryApiPolicyStatement = new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
+    const telemetryApiPolicyStatement = new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: ["execute-api:Invoke"],
       resources: ["*"],
     });
     telemetryApiPolicyStatement.addAnyPrincipal();
 
-    const telemetryApi = new apigateway.LambdaRestApi(this, "tools-telemetry", {
+    const telemetryApi = new LambdaRestApi(this, appName, {
       handler: telemetryAPIFunction,
-      endpointTypes: [apigateway.EndpointType.EDGE],
-      policy: new iam.PolicyDocument({
+      endpointTypes: [EndpointType.EDGE],
+      policy: new PolicyDocument({
         statements: [telemetryApiPolicyStatement],
       }),
       defaultMethodOptions: {
@@ -215,27 +205,29 @@ export class TelemetryStack extends Stack {
       },
     });
 
-    const telemetryCertificate = acm.Certificate.fromCertificateArn(
+    const telemetryCertificate = Certificate.fromCertificateArn(
       this,
-      "user-telemetry-certificate",
-      telemetryCertificateArn.valueAsString
+      `telemetry-cert-${this.stage}`,
+      telemetryCert.valueAsString
     );
 
-    const telemetryDomainName = new apigateway.DomainName(
+    const telemetryDomainName = new DomainName(
       this,
-      "user-telemetry-domain-name",
+      `user-telemetry-domain-name-${this.stage}`,
       {
         domainName: telemetryHostName.valueAsString,
         certificate: telemetryCertificate,
-        endpointType: apigateway.EndpointType.EDGE,
+        endpointType: EndpointType.EDGE,
       }
     );
 
     telemetryDomainName.addBasePathMapping(telemetryApi, { basePath: "" });
 
-    new CfnOutput(this, "user-telemetry-api-target-hostname", {
-      description: "hostname",
-      value: `${telemetryDomainName.domainNameAliasDomainName}`,
+    new GuDnsRecordSet(this, `telemetry-dns-record-${this.stage}`, {
+      name: telemetryHostName.valueAsString,
+      recordType: RecordType.CNAME,
+      resourceRecords: [telemetryDomainName.domainNameAliasDomainName],
+      ttl: Duration.seconds(3600),
     });
   }
 }
