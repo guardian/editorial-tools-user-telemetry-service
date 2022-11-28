@@ -1,6 +1,6 @@
 # editorial-tools-user-telemetry-service
 
-A service to receive telemetry events and pass them on to a kinesis stream. Designed to be used across the Guardian's Editorial Tools to help the team gather data about tool usage.
+A service to receive telemetry events and pass them on to a kinesis stream. Designed to be used across the Guardian's Editorial Tools to help the team gather data about tool usage. The package is published as [@guardian/user-telemetry-client](https://www.npmjs.com/package/@guardian/user-telemetry-client).
 
 ![User telemetry stack](https://user-images.githubusercontent.com/7767575/93306939-6401a180-f7f8-11ea-8851-0d875940e728.jpeg)
 
