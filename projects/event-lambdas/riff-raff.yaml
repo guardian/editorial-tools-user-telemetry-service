@@ -5,7 +5,6 @@ deployments:
         type: aws-lambda
         parameters:
             prefixStack: false
-            bucket: composer-dist
             fileName: event-api-lambda.zip
             functionNames:
                 [event-api-lambda-]
