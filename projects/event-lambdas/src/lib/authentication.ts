@@ -36,7 +36,7 @@ function isDateValid(requestDate: string) {
   const currentDate = new Date().getTime();
   const dateDelta = Math.abs(parsedDate - currentDate);
 
-  return dateDelta > hmacAllowedDateOffsetInMillis
+  return dateDelta < hmacAllowedDateOffsetInMillis
 }
 
 export async function authenticated(
