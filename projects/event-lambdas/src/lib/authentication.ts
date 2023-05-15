@@ -33,7 +33,7 @@ function isDateValid(requestDate: string) {
     return false;
   }
 
-  const currentDate = Date.parse(new Date().toUTCString());
+  const currentDate = new Date().getTime();
   const dateDelta = Math.abs(parsedDate - currentDate);
 
   return dateDelta > hmacAllowedDateOffsetInMillis
