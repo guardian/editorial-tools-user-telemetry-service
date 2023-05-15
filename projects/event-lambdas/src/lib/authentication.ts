@@ -24,7 +24,7 @@ function isHMACValid(date: string, path: string, requestToken: string) {
   const content = date + '\n' + path;
   hmac.update(content, "utf8");
 
-  return "HMAC " + hmac.digest('base64');
+  return ("HMAC " + hmac.digest('base64')) === requestToken;
 }
 
 function isDateValid(requestDate: string) {
