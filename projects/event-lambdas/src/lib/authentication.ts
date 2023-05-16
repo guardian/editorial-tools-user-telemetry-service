@@ -7,7 +7,7 @@ import { Request, Response } from "express";
 import { PandaHmacAuthentication } from './panda-hmac'
 
 // TODO: We may wish to configure multiple keys for different clients
-import { pandaSettingsKey,hmacAllowedDateOffsetInMillis, hmacSecretKey } from "./constants";
+import { pandaSettingsKey } from "./constants";
 import { applyErrorResponse } from "../event-api-lambda/util";
 
 export const panda = new PanDomainAuthentication(
@@ -18,13 +18,9 @@ export const panda = new PanDomainAuthentication(
   guardianValidation
 );
 
-export const hmac = new PandaHmacAuthentication(
-  hmacAllowedDateOffsetInMillis,
-  hmacSecretKey
-);
-
 export async function authenticated(
   panda: PanDomainAuthentication,
+  hmac: PandaHmacAuthentication,
   req: Request,
   res: Response,
   handler: () => Promise<void>

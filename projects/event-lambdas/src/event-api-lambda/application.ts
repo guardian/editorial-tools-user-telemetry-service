@@ -4,15 +4,26 @@ import { Request, Response } from "express";
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
 import { panda, authenticated } from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
+import type { InitConfig } from "./index";
+import { hmacAllowedDateOffsetInMillis } from "../lib/constants";
+import { PandaHmacAuthentication } from "../lib/panda-hmac";
 
-export const createApp = (): express.Application => {
+export const createApp = (initConfig: InitConfig): express.Application => {
   const app = express();
 
+  const hmac = new PandaHmacAuthentication(
+    hmacAllowedDateOffsetInMillis,
+    initConfig.hmacSecret
+  );
+
   app.use((req, res, next) => {
-    const host = req.get('origin') || '';
-    if (host.endsWith(".gutools.co.uk") || host.endsWith(".dev-gutools.co.uk")) {
+    const host = req.get("origin") || "";
+    if (
+      host.endsWith(".gutools.co.uk") ||
+      host.endsWith(".dev-gutools.co.uk")
+    ) {
       res.header("Access-Control-Allow-Headers", "Content-Type");
-      res.header("Access-Control-Allow-Origin", req.get('origin'));
+      res.header("Access-Control-Allow-Origin", req.get("origin"));
       res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
       res.header("Access-Control-Allow-Credentials", "true");
     }
@@ -27,7 +38,7 @@ export const createApp = (): express.Application => {
     "/event",
     express.json({ limit: "1mb" }),
     async (req: Request, res: Response) =>
-      authenticated(panda, req, res, async () => {
+      authenticated(panda, hmac, req, res, async () => {
         if (!req.body) {
           applyErrorResponse(res, 401, "Missing request body");
           return;
