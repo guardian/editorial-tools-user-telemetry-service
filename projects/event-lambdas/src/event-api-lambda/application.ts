@@ -2,19 +2,12 @@ import express from "express";
 import { Request, Response } from "express";
 
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
-import { panda, authenticated } from "../lib/authentication";
+import { authenticated } from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 import type { InitConfig } from "./index";
-import { hmacAllowedDateOffsetInMillis } from "../lib/constants";
-import { PandaHmacAuthentication } from "../lib/panda-hmac";
 
 export const createApp = (initConfig: InitConfig): express.Application => {
   const app = express();
-
-  const hmac = new PandaHmacAuthentication(
-    hmacAllowedDateOffsetInMillis,
-    initConfig.hmacSecrets
-  );
 
   app.use((req, res, next) => {
     const host = req.get("origin") || "";
@@ -38,31 +31,37 @@ export const createApp = (initConfig: InitConfig): express.Application => {
     "/event",
     express.json({ limit: "1mb" }),
     async (req: Request, res: Response) =>
-      authenticated(panda, hmac, req, res, async () => {
-        if (!req.body) {
-          applyErrorResponse(res, 401, "Missing request body");
-          return;
-        }
+      authenticated(
+        initConfig.panDomainAuthentication,
+        initConfig.pandaHmacAuthentication,
+        req,
+        res,
+        async () => {
+          if (!req.body) {
+            applyErrorResponse(res, 401, "Missing request body");
+            return;
+          }
 
-        const maybeEventData = parseEventJson(req.body);
+          const maybeEventData = parseEventJson(req.body);
 
-        if (maybeEventData.error) {
-          applyErrorResponse(
-            res,
-            400,
-            "Incorrect event format",
-            maybeEventData.error
+          if (maybeEventData.error) {
+            applyErrorResponse(
+              res,
+              400,
+              "Incorrect event format",
+              maybeEventData.error
+            );
+            return;
+          }
+
+          const fileKey = await putEventsIntoS3Bucket(maybeEventData.value);
+          console.log(
+            `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
           );
-          return;
+
+          applyOkResponse(res, 201, fileKey);
         }
-
-        const fileKey = await putEventsIntoS3Bucket(maybeEventData.value);
-        console.log(
-          `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
-        );
-
-        applyOkResponse(res, 201, fileKey);
-      })
+      )
   );
 
   return app;

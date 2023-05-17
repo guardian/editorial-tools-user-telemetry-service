@@ -1,14 +1,13 @@
 import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
-import { authenticated } from "../../lib/authentication";
 import MockDate from "mockdate";
+import { PandaHmacAuthentication } from "../../lib/panda-hmac";
+import { AuthenticationStatus } from "@guardian/pan-domain-node";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
 }));
-
-jest.mock("../../lib/authentication");
 
 import { s3 } from "../../lib/aws";
 import { telemetryBucketName } from "../../lib/constants";
@@ -18,7 +17,11 @@ chai.should();
 
 describe("Event API lambda", () => {
   const constantDate = "2020-09-03T17:34:37.839Z";
-  const originalAuthenticated = authenticated;
+
+  const panDomainAuthentication = {
+    verify: (requestCookies: string) =>
+      Promise.resolve({ status: AuthenticationStatus.AUTHORISED }),
+  };
 
   beforeAll(async () => {
     try {
@@ -30,16 +33,18 @@ describe("Event API lambda", () => {
     }
 
     MockDate.set(constantDate);
-
-    (authenticated as any).mockImplementation(((_, __, ___, ____, handler) => handler()) as typeof authenticated);
   });
 
   afterAll(() => {
     MockDate.reset();
-    (authenticated as any).mockImplementation(originalAuthenticated);
   });
 
-  const testApp = createApp({hmacSecrets: []});
+  const pandaHmacAuthentication = new PandaHmacAuthentication(0, []);
+
+  const testApp = createApp({
+    pandaHmacAuthentication,
+    panDomainAuthentication,
+  });
 
   describe("/healthcheck", () => {
     it("should return 200 from healthcheck", () => {
@@ -71,6 +76,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .then((res) => {
           expect(res.status).toBe(400);
           expect(res.body).toEqual(response);
@@ -108,6 +114,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(400);
@@ -143,6 +150,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(400);
@@ -164,9 +172,30 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(201);
+        });
+    });
+
+    it("should return a 403 with no cookie header set", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(403);
         });
     });
 
@@ -181,7 +210,11 @@ describe("Event API lambda", () => {
         },
       ];
 
-      const res = await chai.request(testApp).post("/event").send(request);
+      const res = await chai
+        .request(testApp)
+        .post("/event")
+        .set("Cookie", "some_value")
+        .send(request);
 
       const expectedResponse = {
         message: "data/2020-09-03/2020-09-03T17:34:37.839Z-mock-uuid",

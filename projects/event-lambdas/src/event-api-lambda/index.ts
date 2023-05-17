@@ -2,12 +2,21 @@ import awsServerlessExpress from "aws-serverless-express";
 import { Handler } from "aws-lambda";
 
 import { createApp } from "./application";
-import { isRunningLocally, secretManager } from "../lib/aws";
-import { hmacSecretLocation } from "../lib/constants";
+import { isRunningLocally } from "../lib/aws";
+import { hmacSecretLocation, pandaSettingsKey } from "../lib/constants";
 import { getValidSecrets } from "../lib/secrets";
 
+import { PandaHmacAuthentication } from '../lib/panda-hmac'
+import { hmacAllowedDateOffsetInMillis } from "../lib/constants";
+
+import {
+  PanDomainAuthentication,
+  guardianValidation,
+} from "@guardian/pan-domain-node";
+
 export type InitConfig = {
-  hmacSecrets: string[];
+  pandaHmacAuthentication: Pick<PandaHmacAuthentication,'verify'>,
+  panDomainAuthentication: Pick<PanDomainAuthentication,'verify'>
 };
 
 // Runs during the Lambda initialisation phase
@@ -20,8 +29,22 @@ async function initialise(): Promise<InitConfig> {
     [] as string[]
   );
 
-  return {
+  const pandaHmacAuthentication = new PandaHmacAuthentication(
+    hmacAllowedDateOffsetInMillis,
     hmacSecrets
+  );
+
+  const panDomainAuthentication = new PanDomainAuthentication(
+    "gutoolsAuth-assym", // cookie name
+    "eu-west-1", // AWS region
+    "pan-domain-auth-settings", // Settings bucket
+    pandaSettingsKey, // Settings file
+    guardianValidation
+  );
+
+  return {
+    pandaHmacAuthentication,
+    panDomainAuthentication
   };
 }
 

@@ -1,26 +1,15 @@
 import {
   PanDomainAuthentication,
-  guardianValidation,
   AuthenticationStatus,
 } from "@guardian/pan-domain-node";
 import { Request, Response } from "express";
 import { PandaHmacAuthentication } from './panda-hmac'
-
-// TODO: We may wish to configure multiple keys for different clients
-import { pandaSettingsKey } from "./constants";
 import { applyErrorResponse } from "../event-api-lambda/util";
 
-export const panda = new PanDomainAuthentication(
-  "gutoolsAuth-assym", // cookie name
-  "eu-west-1", // AWS region
-  "pan-domain-auth-settings", // Settings bucket
-  pandaSettingsKey, // Settings file
-  guardianValidation
-);
 
 export async function authenticated(
-  panda: PanDomainAuthentication,
-  hmac: PandaHmacAuthentication,
+  panda: Pick<PanDomainAuthentication,'verify'>,
+  hmac: Pick<PandaHmacAuthentication,'verify'>,
   req: Request,
   res: Response,
   handler: () => Promise<void>
@@ -44,7 +33,6 @@ export async function authenticated(
     }
   } else {
     // No HMAC authentication headers so assume we need to do regular panda auth
-
     const cookie = Array.isArray(req.headers["cookie"])
         ? req.headers["cookie"][0]
         : req.headers["cookie"] || "";
