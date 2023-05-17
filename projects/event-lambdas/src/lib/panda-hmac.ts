@@ -14,7 +14,10 @@ function isHMACValid(
   return expectedToken === requestToken;
 }
 
-function isDateValid(hmacAllowedDateOffsetInMillis: number, requestDate: string) {
+function isDateValid(
+  hmacAllowedDateOffsetInMillis: number,
+  requestDate: string
+) {
   const parsedDate = Date.parse(requestDate);
 
   if (Number.isNaN(parsedDate)) {
@@ -36,10 +39,11 @@ export class PandaHmacAuthentication {
     this.hmacSecretKeys = hmacSecretKeys;
   }
 
-  verify(requestDate: string, path: string, requestToken: string): boolean { 
-    return this.hmacSecretKeys.some((secretKey) => (
-      isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&
-      isHMACValid(secretKey, requestDate, path, requestToken)
-    ));
+  verify(requestDate: string, path: string, requestToken: string): boolean {
+    return this.hmacSecretKeys.some(
+      (secretKey) =>
+        isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&
+        isHMACValid(secretKey, requestDate, path, requestToken)
+    );
   }
 }

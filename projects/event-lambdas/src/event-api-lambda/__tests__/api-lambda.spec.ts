@@ -39,7 +39,9 @@ describe("Event API lambda", () => {
     MockDate.reset();
   });
 
-  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, ["changeme"]);
+  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, [
+    "changeme",
+  ]);
 
   const testApp = createApp({
     pandaHmacAuthentication,
@@ -213,7 +215,10 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
-        .set("X-Gu-Tools-HMAC-Token", "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8=")
+        .set(
+          "X-Gu-Tools-HMAC-Token",
+          "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8="
+        )
         .set("X-Gu-Tools-HMAC-Date", constantDate)
         .send(request)
         .then((res) => {

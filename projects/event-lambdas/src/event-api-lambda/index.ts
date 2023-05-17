@@ -6,7 +6,7 @@ import { isRunningLocally } from "../lib/aws";
 import { hmacSecretLocation, pandaSettingsKey } from "../lib/constants";
 import { getValidSecrets } from "../lib/secrets";
 
-import { PandaHmacAuthentication } from '../lib/panda-hmac'
+import { PandaHmacAuthentication } from "../lib/panda-hmac";
 import { hmacAllowedDateOffsetInMillis } from "../lib/constants";
 
 import {
@@ -15,8 +15,8 @@ import {
 } from "@guardian/pan-domain-node";
 
 export type AppConfig = {
-  pandaHmacAuthentication: Pick<PandaHmacAuthentication,'verify'>,
-  panDomainAuthentication: Pick<PanDomainAuthentication,'verify'>
+  pandaHmacAuthentication: Pick<PandaHmacAuthentication, "verify">;
+  panDomainAuthentication: Pick<PanDomainAuthentication, "verify">;
 };
 
 // Runs during the Lambda initialisation phase
@@ -44,7 +44,7 @@ async function initialise(): Promise<AppConfig> {
 
   return {
     pandaHmacAuthentication,
-    panDomainAuthentication
+    panDomainAuthentication,
   };
 }
 

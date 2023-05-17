@@ -6,10 +6,9 @@ describe("panda-hmac", () => {
   const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
   const requestPath = "/example/path";
   const hmacAllowedDateOffsetInMillis = 5000;
-  const pandaHmac = new PandaHmacAuthentication(
-    hmacAllowedDateOffsetInMillis,
-    ["changeme"]
-  );
+  const pandaHmac = new PandaHmacAuthentication(hmacAllowedDateOffsetInMillis, [
+    "changeme",
+  ]);
 
   beforeAll(() => {
     MockDate.set(constantDate);
