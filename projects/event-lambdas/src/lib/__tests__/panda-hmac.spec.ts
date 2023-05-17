@@ -8,7 +8,7 @@ describe("panda-hmac", () => {
   const hmacAllowedDateOffsetInMillis = 5000;
   const pandaHmac = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
-    "changeme"
+    ["changeme"]
   );
 
   beforeAll(() => {

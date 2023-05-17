@@ -2,30 +2,30 @@ import awsServerlessExpress from "aws-serverless-express";
 import { Handler } from "aws-lambda";
 
 import { createApp } from "./application";
-import { isRunningLocally } from "../lib/aws";
-import { hmacSecretLocation } from '../lib/constants'
-import { secretManager } from '../lib/aws';
+import { isRunningLocally, secretManager } from "../lib/aws";
+import { hmacSecretLocation } from "../lib/constants";
+import { getValidSecrets } from "../lib/secrets";
 
-
-export interface InitConfig {
-  hmacSecret: string
-}
+export type InitConfig = {
+  hmacSecrets: string[];
+};
 
 // Runs during the Lambda initialisation phase
 // See https://docs.aws.amazon.com/lambda/latest/operatorguide/static-initialization.html
 async function initialise(): Promise<InitConfig> {
-  // TODO: Pull current and previous stage for secret, and handle stale previous
-  const hmacSecret = (
-    await secretManager.getSecretValue({SecretId: hmacSecretLocation}).promise()
-  ).SecretString as string
+  // Get valid secrets for the HMAC key
+  const validSecrets = await getValidSecrets(hmacSecretLocation);
+  const hmacSecrets = validSecrets.reduce(
+    (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
+    [] as string[]
+  );
 
   return {
-    hmacSecret
-  }
+    hmacSecrets
+  };
 }
 
 export const handler: Handler = async (event, context) => {
-
   const initConfig = await initialise();
   const app = createApp(initConfig);
 
@@ -39,11 +39,11 @@ export const handler: Handler = async (event, context) => {
 if (isRunningLocally) {
   const port = 3132;
 
-  initialise().then((initConfig) =>{
+  initialise().then((initConfig) => {
     const app = createApp(initConfig);
 
     app.listen(port, async () => {
       console.log(`Event API app listening on port ${port}`);
     });
-  })
+  });
 }

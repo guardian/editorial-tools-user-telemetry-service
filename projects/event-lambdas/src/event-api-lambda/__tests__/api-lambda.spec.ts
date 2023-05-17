@@ -37,7 +37,7 @@ describe("Event API lambda", () => {
       }
     };
 
-    (authenticated as any).mockImplementation(((_, __, ___, handler) => handler()) as typeof authenticated);
+    (authenticated as any).mockImplementation(((_, __, ___, ____, handler) => handler()) as typeof authenticated);
   });
 
   afterAll(() => {
@@ -45,7 +45,7 @@ describe("Event API lambda", () => {
     (authenticated as any).mockImplementation(originalAuthenticated);
   });
 
-  const testApp = createApp();
+  const testApp = createApp({hmacSecrets: []});
 
   describe("/healthcheck", () => {
     it("should return 200 from healthcheck", () => {

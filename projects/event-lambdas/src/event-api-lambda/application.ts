@@ -13,7 +13,7 @@ export const createApp = (initConfig: InitConfig): express.Application => {
 
   const hmac = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
-    initConfig.hmacSecret
+    initConfig.hmacSecrets
   );
 
   app.use((req, res, next) => {

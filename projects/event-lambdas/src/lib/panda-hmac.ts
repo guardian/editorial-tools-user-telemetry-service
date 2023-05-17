@@ -29,17 +29,17 @@ function isDateValid(hmacAllowedDateOffsetInMillis: number, requestDate: string)
 
 export class PandaHmacAuthentication {
   hmacAllowedDateOffsetInMillis: number;
-  hmacSecretKey: string;
+  hmacSecretKeys: string[];
 
-  constructor(hmacAllowedDateOffsetInMillis: number, hmacSecretKey: string) {
+  constructor(hmacAllowedDateOffsetInMillis: number, hmacSecretKeys: string[]) {
     this.hmacAllowedDateOffsetInMillis = hmacAllowedDateOffsetInMillis;
-    this.hmacSecretKey = hmacSecretKey;
+    this.hmacSecretKeys = hmacSecretKeys;
   }
 
-  verify(requestDate: string, path: string, requestToken: string): boolean {
-    return (
+  verify(requestDate: string, path: string, requestToken: string): boolean { 
+    return this.hmacSecretKeys.some((secretKey) => (
       isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&
-      isHMACValid(this.hmacSecretKey, requestDate, path, requestToken)
-    );
+      isHMACValid(secretKey, requestDate, path, requestToken)
+    ));
   }
 }
