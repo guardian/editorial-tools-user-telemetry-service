@@ -4,9 +4,9 @@ import { Request, Response } from "express";
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
 import { authenticated } from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
-import type { InitConfig } from "./index";
+import type { AppConfig } from "./index";
 
-export const createApp = (initConfig: InitConfig): express.Application => {
+export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
 
   app.use((req, res, next) => {

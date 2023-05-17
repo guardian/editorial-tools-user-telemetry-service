@@ -16,7 +16,7 @@ chai.use(chaiHttp);
 chai.should();
 
 describe("Event API lambda", () => {
-  const constantDate = "2020-09-03T17:34:37.839Z";
+  const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
 
   const panDomainAuthentication = {
     verify: (requestCookies: string) =>
@@ -39,7 +39,7 @@ describe("Event API lambda", () => {
     MockDate.reset();
   });
 
-  const pandaHmacAuthentication = new PandaHmacAuthentication(0, []);
+  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, ["changeme"]);
 
   const testApp = createApp({
     pandaHmacAuthentication,
@@ -199,6 +199,50 @@ describe("Event API lambda", () => {
         });
     });
 
+    it("should accept a HMAC authenticated request", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .set("X-Gu-Tools-HMAC-Token", "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8=")
+        .set("X-Gu-Tools-HMAC-Date", constantDate)
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(201);
+        });
+    });
+
+    it("should return a 403 for an invalid HMAC authenticated request", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .set("X-Gu-Tools-HMAC-Token", "bad-token")
+        .set("X-Gu-Tools-HMAC-Date", constantDate)
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(403);
+        });
+    });
+
     it("should write well-formed requests to S3 as NDJSON, and return the file key for easy retrieval", async () => {
       const request = [
         {
@@ -217,7 +261,7 @@ describe("Event API lambda", () => {
         .send(request);
 
       const expectedResponse = {
-        message: "data/2020-09-03/2020-09-03T17:34:37.839Z-mock-uuid",
+        message: "data/2023-05-16/2023-05-16T10:36:38.000Z-mock-uuid",
         status: "ok",
       };
 

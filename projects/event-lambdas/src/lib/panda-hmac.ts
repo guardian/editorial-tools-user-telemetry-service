@@ -11,12 +11,12 @@ function isHMACValid(
   hmac.update(content, "utf8");
 
   const expectedToken = "HMAC " + hmac.digest("base64");
-
   return expectedToken === requestToken;
 }
 
 function isDateValid(hmacAllowedDateOffsetInMillis: number, requestDate: string) {
   const parsedDate = Date.parse(requestDate);
+
   if (Number.isNaN(parsedDate)) {
     return false;
   }

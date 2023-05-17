@@ -14,14 +14,14 @@ import {
   guardianValidation,
 } from "@guardian/pan-domain-node";
 
-export type InitConfig = {
+export type AppConfig = {
   pandaHmacAuthentication: Pick<PandaHmacAuthentication,'verify'>,
   panDomainAuthentication: Pick<PanDomainAuthentication,'verify'>
 };
 
 // Runs during the Lambda initialisation phase
 // See https://docs.aws.amazon.com/lambda/latest/operatorguide/static-initialization.html
-async function initialise(): Promise<InitConfig> {
+async function initialise(): Promise<AppConfig> {
   // Get valid secrets for the HMAC key
   const validSecrets = await getValidSecrets(hmacSecretLocation);
   const hmacSecrets = validSecrets.reduce(
