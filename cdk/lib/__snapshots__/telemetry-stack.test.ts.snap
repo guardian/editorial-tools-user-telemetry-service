@@ -1,27 +1,38 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`The telemetry stack matches the snapshot 1`] = `
-Object {
-  "Outputs": Object {
-    "usertelemetryEndpointE4D637B1": Object {
-      "Value": Object {
-        "Fn::Join": Array [
+{
+  "Metadata": {
+    "gu:cdk:constructs": [
+      "GuDnsRecordSet",
+    ],
+    "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "EventApiHmacSecretArn": {
+      "Value": {
+        "Ref": "EventApiHmacSecret1C59BAF9",
+      },
+    },
+    "usertelemetryEndpointE4D637B1": {
+      "Value": {
+        "Fn::Join": [
           "",
-          Array [
+          [
             "https://",
-            Object {
+            {
               "Ref": "usertelemetry6D0235CF",
             },
             ".execute-api.",
-            Object {
+            {
               "Ref": "AWS::Region",
             },
             ".",
-            Object {
+            {
               "Ref": "AWS::URLSuffix",
             },
             "/",
-            Object {
+            {
               "Ref": "usertelemetryDeploymentStageprodD71A8078",
             },
             "/",
@@ -30,214 +41,194 @@ Object {
       },
     },
   },
-  "Parameters": Object {
-    "BucketName": Object {
+  "Parameters": {
+    "BucketName": {
       "Description": "Name of the bucket to persist event data",
       "Type": "String",
     },
-    "CertCODE": Object {
-      "Description": "Certificate ARN for CODE telemetry endpoint",
+    "Cert": {
+      "Description": "Certificate ARN for telemetry endpoint",
       "Type": "String",
     },
-    "CertPROD": Object {
-      "Description": "Certificate ARN for PROD telemetry endpoint",
+    "Hostname": {
+      "Description": "Hostname for telemetry endpoint",
       "Type": "String",
     },
-    "HostnameCODE": Object {
-      "Description": "Hostname for CODE telemetry endpoint",
-      "Type": "String",
-    },
-    "HostnamePROD": Object {
-      "Description": "Hostname for PROD telemetry endpoint",
-      "Type": "String",
-    },
-    "KinesisArn": Object {
+    "KinesisArn": {
       "Description": "ARN of the Kinesis stream to post event data",
       "Type": "String",
     },
-    "MaxLogSize": Object {
+    "MaxLogSize": {
       "Description": "Maximum size (in bytes) of log data from an individual request",
       "Type": "String",
     },
-    "PandaSettingsKey": Object {
+    "PandaSettingsKey": {
       "Description": "The location of the pan-domain authentication settings file",
       "Type": "String",
     },
-    "Stage": Object {
-      "AllowedValues": Array [
-        "CODE",
-        "PROD",
-      ],
-      "Default": "CODE",
-      "Description": "Stage name",
-      "Type": "String",
-    },
   },
-  "Resources": Object {
-    "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691": Object {
-      "DependsOn": Array [
+  "Resources": {
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691": {
+      "DependsOn": [
         "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36",
         "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
       ],
-      "Properties": Object {
-        "Code": Object {
+      "Properties": {
+        "Code": {
           "ZipFile": "import boto3  # type: ignore
 import json
 import logging
 import urllib.request
 
-s3 = boto3.client(\\"s3\\")
+s3 = boto3.client("s3")
 
-CONFIGURATION_TYPES = [\\"TopicConfigurations\\", \\"QueueConfigurations\\", \\"LambdaFunctionConfigurations\\"]
+EVENTBRIDGE_CONFIGURATION = 'EventBridgeConfiguration'
+
+CONFIGURATION_TYPES = ["TopicConfigurations", "QueueConfigurations", "LambdaFunctionConfigurations"]
 
 def handler(event: dict, context):
-    response_status = \\"SUCCESS\\"
-    error_message = \\"\\"
-    try:
-        props = event[\\"ResourceProperties\\"]
-        bucket = props[\\"BucketName\\"]
-        notification_configuration = props[\\"NotificationConfiguration\\"]
-        request_type = event[\\"RequestType\\"]
-        managed = props.get('Managed', 'true').lower() == 'true'
-        stack_id = event['StackId']
+  response_status = "SUCCESS"
+  error_message = ""
+  try:
+    props = event["ResourceProperties"]
+    bucket = props["BucketName"]
+    notification_configuration = props["NotificationConfiguration"]
+    request_type = event["RequestType"]
+    managed = props.get('Managed', 'true').lower() == 'true'
+    stack_id = event['StackId']
 
-        if managed:
-          config = handle_managed(request_type, notification_configuration)
-        else:
-          config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
+    if managed:
+      config = handle_managed(request_type, notification_configuration)
+    else:
+      config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
 
-        put_bucket_notification_configuration(bucket, config)
-    except Exception as e:
-        logging.exception(\\"Failed to put bucket notification configuration\\")
-        response_status = \\"FAILED\\"
-        error_message = f\\"Error: {str(e)}. \\"
-    finally:
-        submit_response(event, context, response_status, error_message)
-
+    put_bucket_notification_configuration(bucket, config)
+  except Exception as e:
+    logging.exception("Failed to put bucket notification configuration")
+    response_status = "FAILED"
+    error_message = f"Error: {str(e)}. "
+  finally:
+    submit_response(event, context, response_status, error_message)
 
 def handle_managed(request_type, notification_configuration):
   if request_type == 'Delete':
     return {}
   return notification_configuration
 
-
 def handle_unmanaged(bucket, stack_id, request_type, notification_configuration):
-
-  # find external notifications
   external_notifications = find_external_notifications(bucket, stack_id)
 
-  # if delete, that's all we need
   if request_type == 'Delete':
     return external_notifications
 
   def with_id(notification):
-    notification['Id'] = f\\"{stack_id}-{hash(json.dumps(notification, sort_keys=True))}\\"
+    notification['Id'] = f"{stack_id}-{hash(json.dumps(notification, sort_keys=True))}"
     return notification
 
-  # otherwise, merge external with incoming config and augment with id
   notifications = {}
   for t in CONFIGURATION_TYPES:
     external = external_notifications.get(t, [])
     incoming = [with_id(n) for n in notification_configuration.get(t, [])]
     notifications[t] = external + incoming
-  return notifications
 
+  if EVENTBRIDGE_CONFIGURATION in notification_configuration:
+    notifications[EVENTBRIDGE_CONFIGURATION] = notification_configuration[EVENTBRIDGE_CONFIGURATION]
+  elif EVENTBRIDGE_CONFIGURATION in external_notifications:
+    notifications[EVENTBRIDGE_CONFIGURATION] = external_notifications[EVENTBRIDGE_CONFIGURATION]
+
+  return notifications
 
 def find_external_notifications(bucket, stack_id):
   existing_notifications = get_bucket_notification_configuration(bucket)
   external_notifications = {}
   for t in CONFIGURATION_TYPES:
-    # if the notification was created by us, we know what id to expect
-    # so we can filter by it.
-    external_notifications[t] = [n for n in existing_notifications.get(t, []) if not n['Id'].startswith(f\\"{stack_id}-\\")]
+    external_notifications[t] = [n for n in existing_notifications.get(t, []) if not n['Id'].startswith(f"{stack_id}-")]
+
+  if EVENTBRIDGE_CONFIGURATION in existing_notifications:
+    external_notifications[EVENTBRIDGE_CONFIGURATION] = existing_notifications[EVENTBRIDGE_CONFIGURATION]
 
   return external_notifications
-
 
 def get_bucket_notification_configuration(bucket):
   return s3.get_bucket_notification_configuration(Bucket=bucket)
 
-
 def put_bucket_notification_configuration(bucket, notification_configuration):
   s3.put_bucket_notification_configuration(Bucket=bucket, NotificationConfiguration=notification_configuration)
 
-
 def submit_response(event: dict, context, response_status: str, error_message: str):
-    response_body = json.dumps(
-        {
-            \\"Status\\": response_status,
-            \\"Reason\\": f\\"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}\\",
-            \\"PhysicalResourceId\\": event.get(\\"PhysicalResourceId\\") or event[\\"LogicalResourceId\\"],
-            \\"StackId\\": event[\\"StackId\\"],
-            \\"RequestId\\": event[\\"RequestId\\"],
-            \\"LogicalResourceId\\": event[\\"LogicalResourceId\\"],
-            \\"NoEcho\\": False,
-        }
-    ).encode(\\"utf-8\\")
-    headers = {\\"content-type\\": \\"\\", \\"content-length\\": str(len(response_body))}
-    try:
-        req = urllib.request.Request(url=event[\\"ResponseURL\\"], headers=headers, data=response_body, method=\\"PUT\\")
-        with urllib.request.urlopen(req) as response:
-            print(response.read().decode(\\"utf-8\\"))
-        print(\\"Status code: \\" + response.reason)
-    except Exception as e:
-        print(\\"send(..) failed executing request.urlopen(..): \\" + str(e))
+  response_body = json.dumps(
+    {
+      "Status": response_status,
+      "Reason": f"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}",
+      "PhysicalResourceId": event.get("PhysicalResourceId") or event["LogicalResourceId"],
+      "StackId": event["StackId"],
+      "RequestId": event["RequestId"],
+      "LogicalResourceId": event["LogicalResourceId"],
+      "NoEcho": False,
+    }
+  ).encode("utf-8")
+  headers = {"content-type": "", "content-length": str(len(response_body))}
+  try:
+    req = urllib.request.Request(url=event["ResponseURL"], headers=headers, data=response_body, method="PUT")
+    with urllib.request.urlopen(req) as response:
+      print(response.read().decode("utf-8"))
+    print("Status code: " + response.reason)
+  except Exception as e:
+      print("send(..) failed executing request.urlopen(..): " + str(e))
 ",
         },
-        "Description": "AWS CloudFormation handler for \\"Custom::S3BucketNotifications\\" resources (@aws-cdk/aws-s3)",
+        "Description": "AWS CloudFormation handler for "Custom::S3BucketNotifications" resources (@aws-cdk/aws-s3)",
         "Handler": "index.handler",
-        "Role": Object {
-          "Fn::GetAtt": Array [
+        "Role": {
+          "Fn::GetAtt": [
             "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
             "Arn",
           ],
         },
-        "Runtime": "python3.7",
-        "Tags": Array [
-          Object {
+        "Runtime": "python3.9",
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
-              "Principal": Object {
+              "Principal": {
                 "Service": "lambda.amazonaws.com",
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -245,39 +236,37 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         ],
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::IAM::Role",
     },
-    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36": Object {
-      "Properties": Object {
-        "PolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
               "Action": "s3:PutBucketNotification",
               "Effect": "Allow",
               "Resource": "*",
             },
-            Object {
+            {
               "Action": "s3:GetBucketNotification",
               "Effect": "Allow",
               "Resource": "*",
@@ -286,123 +275,126 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           "Version": "2012-10-17",
         },
         "PolicyName": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36",
-        "Roles": Array [
-          Object {
+        "Roles": [
+          {
             "Ref": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "EventApiLambda6AA4ADA7": Object {
-      "DependsOn": Array [
+    "EventApiHmacSecret1C59BAF9": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": "The HMAC secret key used to authenticate machine clients with the event-api-lambda",
+        "GenerateSecretString": {},
+        "Name": "/CODE/flexible/event-api-lambda/hmacSecret",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "EventApiLambda6AA4ADA7": {
+      "DependsOn": [
         "EventApiLambdaServiceRoleDefaultPolicy92CD0566",
         "EventApiLambdaServiceRole3695319B",
       ],
-      "Properties": Object {
-        "Code": Object {
+      "Properties": {
+        "Code": {
           "S3Bucket": "composer-dist",
-          "S3Key": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "flexible/",
-                Object {
-                  "Ref": "Stage",
-                },
-                "/event-api-lambda/event-api-lambda.zip",
-              ],
-            ],
-          },
+          "S3Key": "flexible/CODE/event-api-lambda/event-api-lambda.zip",
         },
-        "Environment": Object {
-          "Variables": Object {
+        "Environment": {
+          "Variables": {
             "APP": "user-telemetry",
             "LOG_ENDPOINT_ENABLED": "true",
-            "MAX_LOG_SIZE": Object {
+            "MAX_LOG_SIZE": {
               "Ref": "MaxLogSize",
             },
-            "PANDA_SETTINGS_KEY": Object {
+            "PANDA_SETTINGS_KEY": {
               "Ref": "PandaSettingsKey",
             },
             "STACK": "flexible",
-            "STAGE": Object {
-              "Ref": "Stage",
-            },
-            "TELEMETRY_BUCKET_NAME": Object {
+            "STAGE": "CODE",
+            "TELEMETRY_BUCKET_NAME": {
               "Ref": "BucketName",
             },
           },
         },
-        "FunctionName": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "event-api-lambda-",
-              Object {
-                "Ref": "Stage",
-              },
-            ],
-          ],
-        },
+        "FunctionName": "event-api-lambda-CODE",
         "Handler": "index.handler",
         "MemorySize": 128,
-        "Role": Object {
-          "Fn::GetAtt": Array [
+        "Role": {
+          "Fn::GetAtt": [
             "EventApiLambdaServiceRole3695319B",
             "Arn",
           ],
         },
         "Runtime": "nodejs14.x",
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "App",
             "Value": "user-telemetry",
           },
-          Object {
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
         "Timeout": 5,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "EventApiLambdaServiceRole3695319B": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "EventApiLambdaServiceRole3695319B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
-              "Principal": Object {
+              "Principal": {
                 "Service": "lambda.amazonaws.com",
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -410,66 +402,64 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         ],
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "App",
             "Value": "user-telemetry",
           },
-          Object {
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::IAM::Role",
     },
-    "EventApiLambdaServiceRoleDefaultPolicy92CD0566": Object {
-      "Properties": Object {
-        "PolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "EventApiLambdaServiceRoleDefaultPolicy92CD0566": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
               "Action": "s3:PutObject",
               "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::Join": Array [
+              "Resource": [
+                {
+                  "Fn::Join": [
                     "",
-                    Array [
+                    [
                       "arn:",
-                      Object {
+                      {
                         "Ref": "AWS::Partition",
                       },
                       ":s3:::",
-                      Object {
+                      {
                         "Ref": "BucketName",
                       },
                     ],
                   ],
                 },
-                Object {
-                  "Fn::Join": Array [
+                {
+                  "Fn::Join": [
                     "",
-                    Array [
+                    [
                       "arn:",
-                      Object {
+                      {
                         "Ref": "AWS::Partition",
                       },
                       ":s3:::",
-                      Object {
+                      {
                         "Ref": "BucketName",
                       },
                       "/*",
@@ -478,66 +468,60 @@ def submit_response(event: dict, context, response_status: str, error_message: s
                 },
               ],
             },
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
           ],
           "Version": "2012-10-17",
         },
         "PolicyName": "EventApiLambdaServiceRoleDefaultPolicy92CD0566",
-        "Roles": Array [
-          Object {
+        "Roles": [
+          {
             "Ref": "EventApiLambdaServiceRole3695319B",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "EventS3LambdaA2D7D547": Object {
-      "DependsOn": Array [
+    "EventS3LambdaA2D7D547": {
+      "DependsOn": [
         "EventS3LambdaServiceRoleDefaultPolicyC5FCC514",
         "EventS3LambdaServiceRole34104ADE",
       ],
-      "Properties": Object {
-        "Code": Object {
+      "Properties": {
+        "Code": {
           "S3Bucket": "composer-dist",
-          "S3Key": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "flexible/",
-                Object {
-                  "Ref": "Stage",
-                },
-                "/event-api-lambda/event-api-lambda.zip",
-              ],
-            ],
-          },
+          "S3Key": "flexible/CODE/event-s3-lambda/event-s3-lambda.zip",
         },
-        "Environment": Object {
-          "Variables": Object {
+        "Environment": {
+          "Variables": {
             "APP": "user-telemetry",
             "LOG_ENDPOINT_ENABLED": "true",
-            "MAX_LOG_SIZE": Object {
+            "MAX_LOG_SIZE": {
               "Ref": "MaxLogSize",
             },
             "STACK": "flexible",
-            "STAGE": Object {
-              "Ref": "Stage",
-            },
-            "TELEMETRY_BUCKET_NAME": Object {
+            "STAGE": "CODE",
+            "TELEMETRY_BUCKET_NAME": {
               "Ref": "BucketName",
             },
-            "TELEMETRY_STREAM_NAME": Object {
-              "Fn::Select": Array [
+            "TELEMETRY_STREAM_NAME": {
+              "Fn::Select": [
                 1,
-                Object {
-                  "Fn::Split": Array [
+                {
+                  "Fn::Split": [
                     "/",
-                    Object {
-                      "Fn::Select": Array [
+                    {
+                      "Fn::Select": [
                         5,
-                        Object {
-                          "Fn::Split": Array [
+                        {
+                          "Fn::Split": [
                             ":",
-                            Object {
+                            {
                               "Ref": "KinesisArn",
                             },
                           ],
@@ -550,75 +534,63 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             },
           },
         },
-        "FunctionName": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "event-s3-lambda-",
-              Object {
-                "Ref": "Stage",
-              },
-            ],
-          ],
-        },
+        "FunctionName": "event-s3-lambda-CODE",
         "Handler": "index.handler",
         "MemorySize": 128,
-        "Role": Object {
-          "Fn::GetAtt": Array [
+        "Role": {
+          "Fn::GetAtt": [
             "EventS3LambdaServiceRole34104ADE",
             "Arn",
           ],
         },
         "Runtime": "nodejs14.x",
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "App",
             "Value": "user-telemetry",
           },
-          Object {
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
         "Timeout": 5,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "EventS3LambdaServiceRole34104ADE": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "EventS3LambdaServiceRole34104ADE": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
-              "Principal": Object {
+              "Principal": {
                 "Service": "lambda.amazonaws.com",
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -626,66 +598,64 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         ],
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "App",
             "Value": "user-telemetry",
           },
-          Object {
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::IAM::Role",
     },
-    "EventS3LambdaServiceRoleDefaultPolicyC5FCC514": Object {
-      "Properties": Object {
-        "PolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "EventS3LambdaServiceRoleDefaultPolicyC5FCC514": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
               "Action": "s3:GetObject",
               "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::Join": Array [
+              "Resource": [
+                {
+                  "Fn::Join": [
                     "",
-                    Array [
+                    [
                       "arn:",
-                      Object {
+                      {
                         "Ref": "AWS::Partition",
                       },
                       ":s3:::",
-                      Object {
+                      {
                         "Ref": "BucketName",
                       },
                     ],
                   ],
                 },
-                Object {
-                  "Fn::Join": Array [
+                {
+                  "Fn::Join": [
                     "",
-                    Array [
+                    [
                       "arn:",
-                      Object {
+                      {
                         "Ref": "AWS::Partition",
                       },
                       ":s3:::",
-                      Object {
+                      {
                         "Ref": "BucketName",
                       },
                       "/*",
@@ -694,10 +664,10 @@ def submit_response(event: dict, context, response_status: str, error_message: s
                 },
               ],
             },
-            Object {
+            {
               "Action": "kinesis:PutRecords",
               "Effect": "Allow",
-              "Resource": Object {
+              "Resource": {
                 "Ref": "KinesisArn",
               },
             },
@@ -705,37 +675,37 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           "Version": "2012-10-17",
         },
         "PolicyName": "EventS3LambdaServiceRoleDefaultPolicyC5FCC514",
-        "Roles": Array [
-          Object {
+        "Roles": [
+          {
             "Ref": "EventS3LambdaServiceRole34104ADE",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "telemetrybucketAllowBucketNotificationsTotelemetryEventS3LambdaF393B67EFDEA6CDB": Object {
-      "Properties": Object {
+    "telemetrybucketAllowBucketNotificationsTotelemetryEventS3LambdaF393B67EFDEA6CDB": {
+      "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
+        "FunctionName": {
+          "Fn::GetAtt": [
             "EventS3LambdaA2D7D547",
             "Arn",
           ],
         },
         "Principal": "s3.amazonaws.com",
-        "SourceAccount": Object {
+        "SourceAccount": {
           "Ref": "AWS::AccountId",
         },
-        "SourceArn": Object {
-          "Fn::Join": Array [
+        "SourceArn": {
+          "Fn::Join": [
             "",
-            Array [
+            [
               "arn:",
-              Object {
+              {
                 "Ref": "AWS::Partition",
               },
               ":s3:::",
-              Object {
+              {
                 "Ref": "BucketName",
               },
             ],
@@ -744,23 +714,23 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "telemetrybucketNotifications3F9E1150": Object {
-      "DependsOn": Array [
+    "telemetrybucketNotifications3F9E1150": {
+      "DependsOn": [
         "telemetrybucketAllowBucketNotificationsTotelemetryEventS3LambdaF393B67EFDEA6CDB",
       ],
-      "Properties": Object {
-        "BucketName": Object {
+      "Properties": {
+        "BucketName": {
           "Ref": "BucketName",
         },
         "Managed": false,
-        "NotificationConfiguration": Object {
-          "LambdaFunctionConfigurations": Array [
-            Object {
-              "Events": Array [
+        "NotificationConfiguration": {
+          "LambdaFunctionConfigurations": [
+            {
+              "Events": [
                 "s3:ObjectCreated:*",
               ],
-              "LambdaFunctionArn": Object {
-                "Fn::GetAtt": Array [
+              "LambdaFunctionArn": {
+                "Fn::GetAtt": [
                   "EventS3LambdaA2D7D547",
                   "Arn",
                 ],
@@ -768,8 +738,8 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             },
           ],
         },
-        "ServiceToken": Object {
-          "Fn::GetAtt": Array [
+        "ServiceToken": {
+          "Fn::GetAtt": [
             "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
             "Arn",
           ],
@@ -777,62 +747,39 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "Custom::S3BucketNotifications",
     },
-    "telemetrydnsrecordcode": Object {
-      "Properties": Object {
-        "Name": Object {
-          "Ref": "HostnameCODE",
+    "telemetrydnsrecordCODE": {
+      "Properties": {
+        "Name": {
+          "Ref": "Hostname",
         },
         "RecordType": "CNAME",
-        "ResourceRecords": Array [
-          Object {
-            "Fn::GetAtt": Array [
-              "usertelemetrydomainnamecodeC4D075FD",
+        "ResourceRecords": [
+          {
+            "Fn::GetAtt": [
+              "usertelemetrydomainnameCODE406C1FF2",
               "DistributionDomainName",
             ],
           },
         ],
-        "Stage": Object {
-          "Ref": "Stage",
-        },
+        "Stage": "CODE",
         "TTL": 3600,
       },
       "Type": "Guardian::DNS::RecordSet",
     },
-    "telemetrydnsrecordprod": Object {
-      "Properties": Object {
-        "Name": Object {
-          "Ref": "HostnamePROD",
-        },
-        "RecordType": "CNAME",
-        "ResourceRecords": Array [
-          Object {
-            "Fn::GetAtt": Array [
-              "usertelemetrydomainnameprod9C4D5652",
-              "DistributionDomainName",
-            ],
-          },
-        ],
-        "Stage": Object {
-          "Ref": "Stage",
-        },
-        "TTL": 3600,
-      },
-      "Type": "Guardian::DNS::RecordSet",
-    },
-    "usertelemetry6D0235CF": Object {
-      "Properties": Object {
-        "EndpointConfiguration": Object {
-          "Types": Array [
+    "usertelemetry6D0235CF": {
+      "Properties": {
+        "EndpointConfiguration": {
+          "Types": [
             "EDGE",
           ],
         },
         "Name": "user-telemetry",
-        "Policy": Object {
-          "Statement": Array [
-            Object {
+        "Policy": {
+          "Statement": [
+            {
               "Action": "execute-api:Invoke",
               "Effect": "Allow",
-              "Principal": Object {
+              "Principal": {
                 "AWS": "*",
               },
               "Resource": "*",
@@ -840,52 +787,50 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           ],
           "Version": "2012-10-17",
         },
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::ApiGateway::RestApi",
     },
-    "usertelemetryANY08DB1886": Object {
-      "Properties": Object {
+    "usertelemetryANY08DB1886": {
+      "Properties": {
         "ApiKeyRequired": false,
         "AuthorizationType": "NONE",
         "HttpMethod": "ANY",
-        "Integration": Object {
+        "Integration": {
           "IntegrationHttpMethod": "POST",
           "Type": "AWS_PROXY",
-          "Uri": Object {
-            "Fn::Join": Array [
+          "Uri": {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":apigateway:",
-                Object {
+                {
                   "Ref": "AWS::Region",
                 },
                 ":lambda:path/2015-03-31/functions/",
-                Object {
-                  "Fn::GetAtt": Array [
+                {
+                  "Fn::GetAtt": [
                     "EventApiLambda6AA4ADA7",
                     "Arn",
                   ],
@@ -895,46 +840,46 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         },
-        "ResourceId": Object {
-          "Fn::GetAtt": Array [
+        "ResourceId": {
+          "Fn::GetAtt": [
             "usertelemetry6D0235CF",
             "RootResourceId",
           ],
         },
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
       },
       "Type": "AWS::ApiGateway::Method",
     },
-    "usertelemetryANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANY598D9524": Object {
-      "Properties": Object {
+    "usertelemetryANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANY598D9524": {
+      "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
+        "FunctionName": {
+          "Fn::GetAtt": [
             "EventApiLambda6AA4ADA7",
             "Arn",
           ],
         },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
+        "SourceArn": {
+          "Fn::Join": [
             "",
-            Array [
+            [
               "arn:",
-              Object {
+              {
                 "Ref": "AWS::Partition",
               },
               ":execute-api:",
-              Object {
+              {
                 "Ref": "AWS::Region",
               },
               ":",
-              Object {
+              {
                 "Ref": "AWS::AccountId",
               },
               ":",
-              Object {
+              {
                 "Ref": "usertelemetry6D0235CF",
               },
               "/test-invoke-stage/*/",
@@ -944,38 +889,38 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "usertelemetryANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYD968F76A": Object {
-      "Properties": Object {
+    "usertelemetryANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYD968F76A": {
+      "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
+        "FunctionName": {
+          "Fn::GetAtt": [
             "EventApiLambda6AA4ADA7",
             "Arn",
           ],
         },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
+        "SourceArn": {
+          "Fn::Join": [
             "",
-            Array [
+            [
               "arn:",
-              Object {
+              {
                 "Ref": "AWS::Partition",
               },
               ":execute-api:",
-              Object {
+              {
                 "Ref": "AWS::Region",
               },
               ":",
-              Object {
+              {
                 "Ref": "AWS::AccountId",
               },
               ":",
-              Object {
+              {
                 "Ref": "usertelemetry6D0235CF",
               },
               "/",
-              Object {
+              {
                 "Ref": "usertelemetryDeploymentStageprodD71A8078",
               },
               "/*/",
@@ -985,41 +930,44 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "usertelemetryAccount5FDE92D4": Object {
-      "DependsOn": Array [
+    "usertelemetryAccount5FDE92D4": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": [
         "usertelemetry6D0235CF",
       ],
-      "Properties": Object {
-        "CloudWatchRoleArn": Object {
-          "Fn::GetAtt": Array [
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": [
             "usertelemetryCloudWatchRole308CB7B7",
             "Arn",
           ],
         },
       },
       "Type": "AWS::ApiGateway::Account",
+      "UpdateReplacePolicy": "Retain",
     },
-    "usertelemetryCloudWatchRole308CB7B7": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
+    "usertelemetryCloudWatchRole308CB7B7": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
-              "Principal": Object {
+              "Principal": {
                 "Service": "apigateway.amazonaws.com",
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
@@ -1027,203 +975,147 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         ],
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::IAM::Role",
+      "UpdateReplacePolicy": "Retain",
     },
-    "usertelemetryDeployment7E6104C1b92209e22603c6e70ba35b81bbd468b3": Object {
-      "DependsOn": Array [
+    "usertelemetryDeployment7E6104C12f9329f8cedbb365119a99881ae538e5": {
+      "DependsOn": [
         "usertelemetryproxyANY639725AB",
         "usertelemetryproxyEC8A2D95",
         "usertelemetryANY08DB1886",
       ],
-      "Properties": Object {
+      "Properties": {
         "Description": "Automatically created by the RestApi construct",
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
       },
       "Type": "AWS::ApiGateway::Deployment",
     },
-    "usertelemetryDeploymentStageprodD71A8078": Object {
-      "DependsOn": Array [
+    "usertelemetryDeploymentStageprodD71A8078": {
+      "DependsOn": [
         "usertelemetryAccount5FDE92D4",
       ],
-      "Properties": Object {
-        "DeploymentId": Object {
-          "Ref": "usertelemetryDeployment7E6104C1b92209e22603c6e70ba35b81bbd468b3",
+      "Properties": {
+        "DeploymentId": {
+          "Ref": "usertelemetryDeployment7E6104C12f9329f8cedbb365119a99881ae538e5",
         },
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
         "StageName": "prod",
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::ApiGateway::Stage",
     },
-    "usertelemetrydomainnamecodeC4D075FD": Object {
-      "Properties": Object {
-        "CertificateArn": Object {
-          "Ref": "CertCODE",
+    "usertelemetrydomainnameCODE406C1FF2": {
+      "Properties": {
+        "CertificateArn": {
+          "Ref": "Cert",
         },
-        "DomainName": Object {
-          "Ref": "HostnameCODE",
+        "DomainName": {
+          "Ref": "Hostname",
         },
-        "EndpointConfiguration": Object {
-          "Types": Array [
+        "EndpointConfiguration": {
+          "Types": [
             "EDGE",
           ],
         },
-        "Tags": Array [
-          Object {
+        "Tags": [
+          {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "TEST",
           },
-          Object {
+          {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
-          Object {
+          {
             "Key": "Stack",
             "Value": "flexible",
           },
-          Object {
+          {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "CODE",
           },
         ],
       },
       "Type": "AWS::ApiGateway::DomainName",
     },
-    "usertelemetrydomainnamecodeMaptelemetryusertelemetry6ED2ABD85ADB4540": Object {
-      "Properties": Object {
+    "usertelemetrydomainnameCODEMaptelemetryusertelemetry6ED2ABD8DCA5640A": {
+      "Properties": {
         "BasePath": "",
-        "DomainName": Object {
-          "Ref": "usertelemetrydomainnamecodeC4D075FD",
+        "DomainName": {
+          "Ref": "usertelemetrydomainnameCODE406C1FF2",
         },
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
-        "Stage": Object {
+        "Stage": {
           "Ref": "usertelemetryDeploymentStageprodD71A8078",
         },
       },
       "Type": "AWS::ApiGateway::BasePathMapping",
     },
-    "usertelemetrydomainnameprod9C4D5652": Object {
-      "Properties": Object {
-        "CertificateArn": Object {
-          "Ref": "CertPROD",
-        },
-        "DomainName": Object {
-          "Ref": "HostnamePROD",
-        },
-        "EndpointConfiguration": Object {
-          "Types": Array [
-            "EDGE",
-          ],
-        },
-        "Tags": Array [
-          Object {
-            "Key": "gu:cdk:version",
-            "Value": "38.2.0",
-          },
-          Object {
-            "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
-          },
-          Object {
-            "Key": "Stack",
-            "Value": "flexible",
-          },
-          Object {
-            "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
-          },
-        ],
-      },
-      "Type": "AWS::ApiGateway::DomainName",
-    },
-    "usertelemetrydomainnameprodMaptelemetryusertelemetry6ED2ABD86E4ABB93": Object {
-      "Properties": Object {
-        "BasePath": "",
-        "DomainName": Object {
-          "Ref": "usertelemetrydomainnameprod9C4D5652",
-        },
-        "RestApiId": Object {
-          "Ref": "usertelemetry6D0235CF",
-        },
-        "Stage": Object {
-          "Ref": "usertelemetryDeploymentStageprodD71A8078",
-        },
-      },
-      "Type": "AWS::ApiGateway::BasePathMapping",
-    },
-    "usertelemetryproxyANY639725AB": Object {
-      "Properties": Object {
+    "usertelemetryproxyANY639725AB": {
+      "Properties": {
         "ApiKeyRequired": false,
         "AuthorizationType": "NONE",
         "HttpMethod": "ANY",
-        "Integration": Object {
+        "Integration": {
           "IntegrationHttpMethod": "POST",
           "Type": "AWS_PROXY",
-          "Uri": Object {
-            "Fn::Join": Array [
+          "Uri": {
+            "Fn::Join": [
               "",
-              Array [
+              [
                 "arn:",
-                Object {
+                {
                   "Ref": "AWS::Partition",
                 },
                 ":apigateway:",
-                Object {
+                {
                   "Ref": "AWS::Region",
                 },
                 ":lambda:path/2015-03-31/functions/",
-                Object {
-                  "Fn::GetAtt": Array [
+                {
+                  "Fn::GetAtt": [
                     "EventApiLambda6AA4ADA7",
                     "Arn",
                   ],
@@ -1233,43 +1125,43 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             ],
           },
         },
-        "ResourceId": Object {
+        "ResourceId": {
           "Ref": "usertelemetryproxyEC8A2D95",
         },
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
       },
       "Type": "AWS::ApiGateway::Method",
     },
-    "usertelemetryproxyANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANYproxy25554F9C": Object {
-      "Properties": Object {
+    "usertelemetryproxyANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANYproxy25554F9C": {
+      "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
+        "FunctionName": {
+          "Fn::GetAtt": [
             "EventApiLambda6AA4ADA7",
             "Arn",
           ],
         },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
+        "SourceArn": {
+          "Fn::Join": [
             "",
-            Array [
+            [
               "arn:",
-              Object {
+              {
                 "Ref": "AWS::Partition",
               },
               ":execute-api:",
-              Object {
+              {
                 "Ref": "AWS::Region",
               },
               ":",
-              Object {
+              {
                 "Ref": "AWS::AccountId",
               },
               ":",
-              Object {
+              {
                 "Ref": "usertelemetry6D0235CF",
               },
               "/test-invoke-stage/*/*",
@@ -1279,38 +1171,38 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "usertelemetryproxyANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYproxy795F93FB": Object {
-      "Properties": Object {
+    "usertelemetryproxyANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYproxy795F93FB": {
+      "Properties": {
         "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
+        "FunctionName": {
+          "Fn::GetAtt": [
             "EventApiLambda6AA4ADA7",
             "Arn",
           ],
         },
         "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
+        "SourceArn": {
+          "Fn::Join": [
             "",
-            Array [
+            [
               "arn:",
-              Object {
+              {
                 "Ref": "AWS::Partition",
               },
               ":execute-api:",
-              Object {
+              {
                 "Ref": "AWS::Region",
               },
               ":",
-              Object {
+              {
                 "Ref": "AWS::AccountId",
               },
               ":",
-              Object {
+              {
                 "Ref": "usertelemetry6D0235CF",
               },
               "/",
-              Object {
+              {
                 "Ref": "usertelemetryDeploymentStageprodD71A8078",
               },
               "/*/*",
@@ -1320,16 +1212,16 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "usertelemetryproxyEC8A2D95": Object {
-      "Properties": Object {
-        "ParentId": Object {
-          "Fn::GetAtt": Array [
+    "usertelemetryproxyEC8A2D95": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
             "usertelemetry6D0235CF",
             "RootResourceId",
           ],
         },
         "PathPart": "{proxy+}",
-        "RestApiId": Object {
+        "RestApiId": {
           "Ref": "usertelemetry6D0235CF",
         },
       },

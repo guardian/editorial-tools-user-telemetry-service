@@ -1,28 +1,74 @@
 {
   "name": "cdk",
-  "version": "0.1.0",
-  "bin": {
-    "cdk": "bin/cdk.js"
-  },
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
     "build": "tsc",
-    "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk",
-    "synth": "cdk synth --path-metadata false --version-reporting false"
+    "test-update": "jest -u",
+    "tidy": "npm run format && npm run lint",
+    "format": "prettier --write \"{lib,bin}/**/*.ts\"",
+    "format:ci": "prettier \"{lib,bin}/**/*.ts\" --check",
+    "lint": "eslint lib/** bin/** --ext .ts --no-error-on-unmatched-pattern --fix",
+    "lint:ci": "eslint lib/** bin/** --ext .ts --no-error-on-unmatched-pattern",
+    "synth": "cdk synth --path-metadata false --version-reporting false",
+    "diff": "cdk diff --path-metadata false --version-reporting false"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.147.0",
-    "@guardian/cdk": "^45.0.0",
-    "@types/jest": "^27.4.1",
-    "@types/node": "10.17.5",
-    "aws-cdk-lib": "^2.25.0",
-    "jest": "^27.5.1",
-    "ts-jest": "^27.1.3",
-    "ts-node": "^10.7.0",
-    "typescript": "^4.6.2"
+    "@guardian/cdk": "50.5.0",
+    "@guardian/eslint-config-typescript": "5.0.0",
+    "@guardian/prettier": "3.0.0",
+    "@types/jest": "^29.5.1",
+    "@types/node": "18.13.0",
+    "aws-cdk": "2.77.0",
+    "aws-cdk-lib": "2.77.0",
+    "constructs": "10.2.8",
+    "eslint": "^8.40.0",
+    "jest": "^29.5.0",
+    "prettier": "^2.8.8",
+    "source-map-support": "^0.5.20",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "~4.9.5"
   },
-  "dependencies": {
-    "source-map-support": "^0.5.16"
+  "prettier": "@guardian/prettier",
+  "jest": {
+    "testMatch": [
+      "<rootDir>/lib/**/*.test.ts"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "setupFilesAfterEnv": [
+      "./jest.setup.js"
+    ]
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true,
+      "jest": true
+    },
+    "extends": [
+      "@guardian/eslint-config-typescript"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2020,
+      "sourceType": "module"
+    },
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "@typescript-eslint/no-inferrable-types": 0,
+      "import/no-namespace": 2
+    },
+    "ignorePatterns": [
+      "**/*.js",
+      "node_modules",
+      "cdk.out",
+      ".eslintrc.js",
+      "jest.config.js"
+    ]
   }
 }
