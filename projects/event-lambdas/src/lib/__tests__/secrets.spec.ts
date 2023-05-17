@@ -4,7 +4,7 @@ import type { GetSecret, SecretStage, SecretValue } from "../secrets";
 import MockDate from "mockdate";
 
 describe("secrets", () => {
-  const serverDate = "Tue, 16 May 2023 10:36:38 GMT";
+  const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
   const maxSecretAgeInSeconds = 5000;
   const noCurrentSecret = { stage: "AWSCURRENT" } as SecretValue;
   const noPreviousSecret = { stage: "AWSPREVIOUS" } as SecretValue;
@@ -17,7 +17,7 @@ describe("secrets", () => {
         : previousValue ?? noPreviousSecret;
 
   beforeAll(() => {
-    MockDate.set(serverDate);
+    MockDate.set(constantDate);
   });
 
   describe("getValidSecrets", () => {
@@ -39,7 +39,7 @@ describe("secrets", () => {
       const currentSecret: SecretValue = {
         stage: "AWSCURRENT",
         value: "somevalue",
-        createdDate: new Date(serverDate),
+        createdDate: new Date(constantDate),
       };
 
       const fakeGetSecret = buildGetSecret(currentSecret);
@@ -59,11 +59,11 @@ describe("secrets", () => {
       const currentSecret: SecretValue = {
         stage: "AWSCURRENT",
         value: "somevalue",
-        createdDate: new Date(serverDate),
+        createdDate: new Date(constantDate),
       };
 
       const secretInDate = new Date(
-        new Date(serverDate).getTime() - (maxSecretAgeInSeconds - 1 * 1000)
+        new Date(constantDate).getTime() - (maxSecretAgeInSeconds - 1 * 1000)
       );
 
       const previousSecret: SecretValue = {
@@ -92,11 +92,11 @@ describe("secrets", () => {
       const currentSecret: SecretValue = {
         stage: "AWSCURRENT",
         value: "somevalue",
-        createdDate: new Date(serverDate),
+        createdDate: new Date(constantDate),
       };
 
       const secretTooOldDate = new Date(
-        new Date(serverDate).getTime() - maxSecretAgeInSeconds * 1000
+        new Date(constantDate).getTime() - maxSecretAgeInSeconds * 1000
       );
 
       const previousSecret: SecretValue = {

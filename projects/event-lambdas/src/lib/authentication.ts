@@ -30,7 +30,7 @@ export async function authenticated(
       req.headers["x-gu-tools-hmac-date"] !== undefined) {
     // Check if we are doing HMAC Authentication, if so check the token & date given
 
-    //TODO: identify and log caller via X-Gu-Tools-Service-Name
+    // TODO: identify and log caller via X-Gu-Tools-Service-Name
     const requestToken = req.headers["x-gu-tools-hmac-token"] as string;
     const requestDate = req.headers["x-gu-tools-hmac-date"] as string;
 

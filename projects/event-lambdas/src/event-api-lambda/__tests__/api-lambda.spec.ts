@@ -2,6 +2,7 @@ import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
 import { authenticated } from "../../lib/authentication";
+import MockDate from "mockdate";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
@@ -16,8 +17,7 @@ chai.use(chaiHttp);
 chai.should();
 
 describe("Event API lambda", () => {
-  const _Date = Date;
-  const constantDate = new Date("2020-09-03T17:34:37.839Z");
+  const constantDate = "2020-09-03T17:34:37.839Z";
   const originalAuthenticated = authenticated;
 
   beforeAll(async () => {
@@ -29,19 +29,13 @@ describe("Event API lambda", () => {
       );
     }
 
-    // @ts-ignore
-    global.Date = class extends Date {
-      constructor() {
-        super();
-        return constantDate;
-      }
-    };
+    MockDate.set(constantDate);
 
     (authenticated as any).mockImplementation(((_, __, ___, ____, handler) => handler()) as typeof authenticated);
   });
 
   afterAll(() => {
-    global.Date = _Date;
+    MockDate.reset();
     (authenticated as any).mockImplementation(originalAuthenticated);
   });
 
