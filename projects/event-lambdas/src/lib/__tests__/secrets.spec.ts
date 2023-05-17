@@ -16,28 +16,105 @@ describe("secrets", () => {
         ? currentValue ?? noCurrentSecret
         : previousValue ?? noPreviousSecret;
 
-  const fakeGetSecretFromAws: GetSecret = async (
-    secretId: string,
-    stage: SecretStage
-  ) =>
-    Promise.resolve({
-      stage: "AWSCURRENT",
-    });
-
   beforeAll(() => {
     MockDate.set(serverDate);
   });
 
   describe("getValidSecrets", () => {
-    describe("when no current or previous secret is available", () => {
+    describe("when NO current OR previous secret is available", () => {
+      const fakeGetSecret = buildGetSecret();
+
       it("returns an empty current secret", async () => {
         const actualCurrentSecret = await getValidSecrets(
           "secretId",
           maxSecretAgeInSeconds,
-          buildGetSecret()
+          fakeGetSecret
         );
 
         expect(actualCurrentSecret).toStrictEqual([noCurrentSecret]);
+      });
+    });
+
+    describe("when ONLY a current secret is available", () => {
+      const currentSecret: SecretValue = {
+        stage: "AWSCURRENT",
+        value: "somevalue",
+        createdDate: new Date(serverDate),
+      };
+
+      const fakeGetSecret = buildGetSecret(currentSecret);
+
+      it("returns an empty current secret", async () => {
+        const actualCurrentSecret = await getValidSecrets(
+          "secretId",
+          maxSecretAgeInSeconds,
+          fakeGetSecret
+        );
+
+        expect(actualCurrentSecret).toStrictEqual([currentSecret]);
+      });
+    });
+
+    describe("when BOTH a VALID current and previous secret are available", () => {
+      const currentSecret: SecretValue = {
+        stage: "AWSCURRENT",
+        value: "somevalue",
+        createdDate: new Date(serverDate),
+      };
+
+      const secretInDate = new Date(
+        new Date(serverDate).getTime() - (maxSecretAgeInSeconds - 1 * 1000)
+      );
+
+      const previousSecret: SecretValue = {
+        stage: "AWSPREVIOUS",
+        value: "somevalue",
+        createdDate: secretInDate,
+      };
+
+      const fakeGetSecret = buildGetSecret(currentSecret, previousSecret);
+
+      it("returns both secret values", async () => {
+        const actualCurrentSecret = await getValidSecrets(
+          "secretId",
+          maxSecretAgeInSeconds,
+          fakeGetSecret
+        );
+
+        expect(actualCurrentSecret).toStrictEqual([
+          previousSecret,
+          currentSecret,
+        ]);
+      });
+    });
+
+    describe("when a VALID current and previous INVALID secret are available", () => {
+      const currentSecret: SecretValue = {
+        stage: "AWSCURRENT",
+        value: "somevalue",
+        createdDate: new Date(serverDate),
+      };
+
+      const secretTooOldDate = new Date(
+        new Date(serverDate).getTime() - maxSecretAgeInSeconds * 1000
+      );
+
+      const previousSecret: SecretValue = {
+        stage: "AWSPREVIOUS",
+        value: "somevalue",
+        createdDate: secretTooOldDate,
+      };
+
+      const fakeGetSecret = buildGetSecret(currentSecret, previousSecret);
+
+      it("returns only the current secret value", async () => {
+        const actualCurrentSecret = await getValidSecrets(
+          "secretId",
+          maxSecretAgeInSeconds,
+          fakeGetSecret
+        );
+
+        expect(actualCurrentSecret).toStrictEqual([currentSecret]);
       });
     });
   });
