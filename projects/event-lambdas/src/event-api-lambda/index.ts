@@ -22,7 +22,7 @@ export type AppConfig = {
 // Runs during the Lambda initialisation phase
 // See https://docs.aws.amazon.com/lambda/latest/operatorguide/static-initialization.html
 async function initialise(): Promise<AppConfig> {
-  console.log("Running initialisation phase")
+  console.log("Running initialisation phase");
 
   // Get valid secrets for the HMAC key
   const validSecrets = await getValidSecrets(hmacSecretLocation);
@@ -53,7 +53,7 @@ async function initialise(): Promise<AppConfig> {
 const appConfig = initialise();
 
 export const handler: Handler = async (event, context) => {
-  console.log("Lambda handler called, processing request.")
+  console.log("Lambda handler called, processing request.");
 
   const app = createApp(await appConfig);
 
@@ -61,7 +61,7 @@ export const handler: Handler = async (event, context) => {
     awsServerlessExpress.createServer(app),
     event,
     context,
-    'PROMISE'
+    "PROMISE"
   ).promise;
 };
 
