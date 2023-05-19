@@ -99,6 +99,7 @@ export class TelemetryStack extends GuStack {
 				MAX_LOG_SIZE: maxLogSize.valueAsString,
 				LOG_ENDPOINT_ENABLED: 'true',
 				TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
+				HMAC_SECRET_LOCATION: hmacSecret.secretName,
 			},
 		};
 

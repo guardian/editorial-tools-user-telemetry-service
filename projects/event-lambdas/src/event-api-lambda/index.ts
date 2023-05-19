@@ -22,6 +22,8 @@ export type AppConfig = {
 // Runs during the Lambda initialisation phase
 // See https://docs.aws.amazon.com/lambda/latest/operatorguide/static-initialization.html
 async function initialise(): Promise<AppConfig> {
+  console.log("Running initialisation phase")
+
   // Get valid secrets for the HMAC key
   const validSecrets = await getValidSecrets(hmacSecretLocation);
   const hmacSecrets = validSecrets.reduce(
@@ -48,21 +50,25 @@ async function initialise(): Promise<AppConfig> {
   };
 }
 
-export const handler: Handler = async (event, context) => {
-  const initConfig = await initialise();
-  const app = createApp(initConfig);
+const appConfig = initialise();
 
-  awsServerlessExpress.proxy(
+export const handler: Handler = async (event, context) => {
+  console.log("Lambda handler called, processing request.")
+
+  const app = createApp(await appConfig);
+
+  return await awsServerlessExpress.proxy(
     awsServerlessExpress.createServer(app),
     event,
-    context
-  );
+    context,
+    'PROMISE'
+  ).promise;
 };
 
 if (isRunningLocally) {
   const port = 3132;
 
-  initialise().then((initConfig) => {
+  appConfig.then((initConfig) => {
     const app = createApp(initConfig);
 
     app.listen(port, async () => {
