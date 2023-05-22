@@ -44,13 +44,13 @@ describe("s3 event handler", () => {
   });
 
   it("should read s3 files from the given event, and reject them if they're malformed", async () => {
-    const Key = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any, "example-key");
+    const keys = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any, "example-key");
 
-    const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
+    const event = getApiGatewayEventForPutEvent(telemetryBucketName, keys[0]);
     const lambdaResponse = await handler(event);
 
     const expectedResponse = JSON.stringify(
-      createErrorResponse(`Invalid data in file with key ${Key}`, [
+      createErrorResponse(`Invalid data in file with key ${keys[0]}`, [
         {
           keyword: "required",
           dataPath: "[0]",
