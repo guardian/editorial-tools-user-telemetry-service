@@ -17,7 +17,7 @@ function setupNvm {
 }
 
 function setupEventApiLambda {
-  cd $EVENT_API_LAMBDA_DIR
+  pushd $EVENT_API_LAMBDA_DIR
   docker-compose up -d
   # Ensure localstack is up, and relevant resources have been created
   for attempt in {1..5}
@@ -32,11 +32,13 @@ function setupEventApiLambda {
   npm run test
   npm run build
   npm run deploy
+  popd
 }
 
 function teardownEventApiLambda {
-  cd $EVENT_API_LAMBDA_DIR
+  pushd $EVENT_API_LAMBDA_DIR
   docker-compose down
+  popd
 }
 
 function setup {
