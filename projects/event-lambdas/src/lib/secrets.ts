@@ -8,13 +8,16 @@ export type SecretValue = {
   createdDate?: Date;
 };
 
-export type GetSecret = (secretId: string, stage: SecretStage) => Promise<SecretValue>;
+export type GetSecret = (
+  secretId: string,
+  stage: SecretStage
+) => Promise<SecretValue>;
 
-const getSecretFromAws: GetSecret = async (
+const getSecretFromAws: GetSecret = (
   secretId: string,
   stage: SecretStage
 ): Promise<SecretValue> =>
-  await secretManager
+  secretManager
     .getSecretValue({
       SecretId: secretId,
       VersionStage: stage,
