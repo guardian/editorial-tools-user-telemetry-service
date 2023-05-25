@@ -35,20 +35,12 @@ Object {
       "Description": "Name of the bucket to persist event data",
       "Type": "String",
     },
-    "CertCODE": Object {
-      "Description": "Certificate ARN for CODE telemetry endpoint",
+    "Cert": Object {
+      "Description": "Certificate ARN for telemetry endpoint",
       "Type": "String",
     },
-    "CertPROD": Object {
-      "Description": "Certificate ARN for PROD telemetry endpoint",
-      "Type": "String",
-    },
-    "HostnameCODE": Object {
-      "Description": "Hostname for CODE telemetry endpoint",
-      "Type": "String",
-    },
-    "HostnamePROD": Object {
-      "Description": "Hostname for PROD telemetry endpoint",
+    "Hostname": Object {
+      "Description": "Hostname for telemetry endpoint",
       "Type": "String",
     },
     "KinesisArn": Object {
@@ -61,15 +53,6 @@ Object {
     },
     "PandaSettingsKey": Object {
       "Description": "The location of the pan-domain authentication settings file",
-      "Type": "String",
-    },
-    "Stage": Object {
-      "AllowedValues": Array [
-        "CODE",
-        "PROD",
-      ],
-      "Default": "CODE",
-      "Description": "Stage name",
       "Type": "String",
     },
   },
@@ -88,45 +71,42 @@ import urllib.request
 
 s3 = boto3.client(\\"s3\\")
 
+EVENTBRIDGE_CONFIGURATION = 'EventBridgeConfiguration'
+
 CONFIGURATION_TYPES = [\\"TopicConfigurations\\", \\"QueueConfigurations\\", \\"LambdaFunctionConfigurations\\"]
 
 def handler(event: dict, context):
-    response_status = \\"SUCCESS\\"
-    error_message = \\"\\"
-    try:
-        props = event[\\"ResourceProperties\\"]
-        bucket = props[\\"BucketName\\"]
-        notification_configuration = props[\\"NotificationConfiguration\\"]
-        request_type = event[\\"RequestType\\"]
-        managed = props.get('Managed', 'true').lower() == 'true'
-        stack_id = event['StackId']
+  response_status = \\"SUCCESS\\"
+  error_message = \\"\\"
+  try:
+    props = event[\\"ResourceProperties\\"]
+    bucket = props[\\"BucketName\\"]
+    notification_configuration = props[\\"NotificationConfiguration\\"]
+    request_type = event[\\"RequestType\\"]
+    managed = props.get('Managed', 'true').lower() == 'true'
+    stack_id = event['StackId']
 
-        if managed:
-          config = handle_managed(request_type, notification_configuration)
-        else:
-          config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
+    if managed:
+      config = handle_managed(request_type, notification_configuration)
+    else:
+      config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
 
-        put_bucket_notification_configuration(bucket, config)
-    except Exception as e:
-        logging.exception(\\"Failed to put bucket notification configuration\\")
-        response_status = \\"FAILED\\"
-        error_message = f\\"Error: {str(e)}. \\"
-    finally:
-        submit_response(event, context, response_status, error_message)
-
+    put_bucket_notification_configuration(bucket, config)
+  except Exception as e:
+    logging.exception(\\"Failed to put bucket notification configuration\\")
+    response_status = \\"FAILED\\"
+    error_message = f\\"Error: {str(e)}. \\"
+  finally:
+    submit_response(event, context, response_status, error_message)
 
 def handle_managed(request_type, notification_configuration):
   if request_type == 'Delete':
     return {}
   return notification_configuration
 
-
 def handle_unmanaged(bucket, stack_id, request_type, notification_configuration):
-
-  # find external notifications
   external_notifications = find_external_notifications(bucket, stack_id)
 
-  # if delete, that's all we need
   if request_type == 'Delete':
     return external_notifications
 
@@ -134,54 +114,56 @@ def handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
     notification['Id'] = f\\"{stack_id}-{hash(json.dumps(notification, sort_keys=True))}\\"
     return notification
 
-  # otherwise, merge external with incoming config and augment with id
   notifications = {}
   for t in CONFIGURATION_TYPES:
     external = external_notifications.get(t, [])
     incoming = [with_id(n) for n in notification_configuration.get(t, [])]
     notifications[t] = external + incoming
-  return notifications
 
+  if EVENTBRIDGE_CONFIGURATION in notification_configuration:
+    notifications[EVENTBRIDGE_CONFIGURATION] = notification_configuration[EVENTBRIDGE_CONFIGURATION]
+  elif EVENTBRIDGE_CONFIGURATION in external_notifications:
+    notifications[EVENTBRIDGE_CONFIGURATION] = external_notifications[EVENTBRIDGE_CONFIGURATION]
+
+  return notifications
 
 def find_external_notifications(bucket, stack_id):
   existing_notifications = get_bucket_notification_configuration(bucket)
   external_notifications = {}
   for t in CONFIGURATION_TYPES:
-    # if the notification was created by us, we know what id to expect
-    # so we can filter by it.
     external_notifications[t] = [n for n in existing_notifications.get(t, []) if not n['Id'].startswith(f\\"{stack_id}-\\")]
 
-  return external_notifications
+  if EVENTBRIDGE_CONFIGURATION in existing_notifications:
+    external_notifications[EVENTBRIDGE_CONFIGURATION] = existing_notifications[EVENTBRIDGE_CONFIGURATION]
 
+  return external_notifications
 
 def get_bucket_notification_configuration(bucket):
   return s3.get_bucket_notification_configuration(Bucket=bucket)
 
-
 def put_bucket_notification_configuration(bucket, notification_configuration):
   s3.put_bucket_notification_configuration(Bucket=bucket, NotificationConfiguration=notification_configuration)
 
-
 def submit_response(event: dict, context, response_status: str, error_message: str):
-    response_body = json.dumps(
-        {
-            \\"Status\\": response_status,
-            \\"Reason\\": f\\"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}\\",
-            \\"PhysicalResourceId\\": event.get(\\"PhysicalResourceId\\") or event[\\"LogicalResourceId\\"],
-            \\"StackId\\": event[\\"StackId\\"],
-            \\"RequestId\\": event[\\"RequestId\\"],
-            \\"LogicalResourceId\\": event[\\"LogicalResourceId\\"],
-            \\"NoEcho\\": False,
-        }
-    ).encode(\\"utf-8\\")
-    headers = {\\"content-type\\": \\"\\", \\"content-length\\": str(len(response_body))}
-    try:
-        req = urllib.request.Request(url=event[\\"ResponseURL\\"], headers=headers, data=response_body, method=\\"PUT\\")
-        with urllib.request.urlopen(req) as response:
-            print(response.read().decode(\\"utf-8\\"))
-        print(\\"Status code: \\" + response.reason)
-    except Exception as e:
-        print(\\"send(..) failed executing request.urlopen(..): \\" + str(e))
+  response_body = json.dumps(
+    {
+      \\"Status\\": response_status,
+      \\"Reason\\": f\\"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}\\",
+      \\"PhysicalResourceId\\": event.get(\\"PhysicalResourceId\\") or event[\\"LogicalResourceId\\"],
+      \\"StackId\\": event[\\"StackId\\"],
+      \\"RequestId\\": event[\\"RequestId\\"],
+      \\"LogicalResourceId\\": event[\\"LogicalResourceId\\"],
+      \\"NoEcho\\": False,
+    }
+  ).encode(\\"utf-8\\")
+  headers = {\\"content-type\\": \\"\\", \\"content-length\\": str(len(response_body))}
+  try:
+    req = urllib.request.Request(url=event[\\"ResponseURL\\"], headers=headers, data=response_body, method=\\"PUT\\")
+    with urllib.request.urlopen(req) as response:
+      print(response.read().decode(\\"utf-8\\"))
+    print(\\"Status code: \\" + response.reason)
+  except Exception as e:
+      print(\\"send(..) failed executing request.urlopen(..): \\" + str(e))
 ",
         },
         "Description": "AWS CloudFormation handler for \\"Custom::S3BucketNotifications\\" resources (@aws-cdk/aws-s3)",
@@ -196,11 +178,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -208,9 +190,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
         "Timeout": 300,
@@ -248,11 +228,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -260,9 +240,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
@@ -302,18 +280,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       "Properties": Object {
         "Code": Object {
           "S3Bucket": "composer-dist",
-          "S3Key": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "flexible/",
-                Object {
-                  "Ref": "Stage",
-                },
-                "/event-api-lambda/event-api-lambda.zip",
-              ],
-            ],
-          },
+          "S3Key": "flexible/TEST/event-api-lambda/event-api-lambda.zip",
         },
         "Environment": Object {
           "Variables": Object {
@@ -326,25 +293,13 @@ def submit_response(event: dict, context, response_status: str, error_message: s
               "Ref": "PandaSettingsKey",
             },
             "STACK": "flexible",
-            "STAGE": Object {
-              "Ref": "Stage",
-            },
+            "STAGE": "TEST",
             "TELEMETRY_BUCKET_NAME": Object {
               "Ref": "BucketName",
             },
           },
         },
-        "FunctionName": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "event-api-lambda-",
-              Object {
-                "Ref": "Stage",
-              },
-            ],
-          ],
-        },
+        "FunctionName": "event-api-lambda-TEST",
         "Handler": "index.handler",
         "MemorySize": 128,
         "Role": Object {
@@ -361,11 +316,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -373,9 +328,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
         "Timeout": 5,
@@ -417,11 +370,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -429,9 +382,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
@@ -498,18 +449,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       "Properties": Object {
         "Code": Object {
           "S3Bucket": "composer-dist",
-          "S3Key": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "flexible/",
-                Object {
-                  "Ref": "Stage",
-                },
-                "/event-api-lambda/event-api-lambda.zip",
-              ],
-            ],
-          },
+          "S3Key": "flexible/TEST/event-s3-lambda/event-s3-lambda.zip",
         },
         "Environment": Object {
           "Variables": Object {
@@ -519,9 +459,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
               "Ref": "MaxLogSize",
             },
             "STACK": "flexible",
-            "STAGE": Object {
-              "Ref": "Stage",
-            },
+            "STAGE": "TEST",
             "TELEMETRY_BUCKET_NAME": Object {
               "Ref": "BucketName",
             },
@@ -550,17 +488,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             },
           },
         },
-        "FunctionName": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "event-s3-lambda-",
-              Object {
-                "Ref": "Stage",
-              },
-            ],
-          ],
-        },
+        "FunctionName": "event-s3-lambda-TEST",
         "Handler": "index.handler",
         "MemorySize": 128,
         "Role": Object {
@@ -577,11 +505,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -589,9 +517,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
         "Timeout": 5,
@@ -633,11 +559,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -645,9 +571,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
@@ -777,44 +701,21 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "Custom::S3BucketNotifications",
     },
-    "telemetrydnsrecordcode": Object {
+    "telemetrydnsrecordTEST": Object {
       "Properties": Object {
         "Name": Object {
-          "Ref": "HostnameCODE",
+          "Ref": "Hostname",
         },
         "RecordType": "CNAME",
         "ResourceRecords": Array [
           Object {
             "Fn::GetAtt": Array [
-              "usertelemetrydomainnamecodeC4D075FD",
+              "usertelemetrydomainnameTESTF3EFC436",
               "DistributionDomainName",
             ],
           },
         ],
-        "Stage": Object {
-          "Ref": "Stage",
-        },
-        "TTL": 3600,
-      },
-      "Type": "Guardian::DNS::RecordSet",
-    },
-    "telemetrydnsrecordprod": Object {
-      "Properties": Object {
-        "Name": Object {
-          "Ref": "HostnamePROD",
-        },
-        "RecordType": "CNAME",
-        "ResourceRecords": Array [
-          Object {
-            "Fn::GetAtt": Array [
-              "usertelemetrydomainnameprod9C4D5652",
-              "DistributionDomainName",
-            ],
-          },
-        ],
-        "Stage": Object {
-          "Ref": "Stage",
-        },
+        "Stage": "TEST",
         "TTL": 3600,
       },
       "Type": "Guardian::DNS::RecordSet",
@@ -843,11 +744,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -855,9 +756,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
@@ -1030,11 +929,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -1042,15 +941,13 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
       "Type": "AWS::IAM::Role",
     },
-    "usertelemetryDeployment7E6104C1b92209e22603c6e70ba35b81bbd468b3": Object {
+    "usertelemetryDeployment7E6104C110775ae7bde40fffbc3476e0df12b7be": Object {
       "DependsOn": Array [
         "usertelemetryproxyANY639725AB",
         "usertelemetryproxyEC8A2D95",
@@ -1070,7 +967,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       ],
       "Properties": Object {
         "DeploymentId": Object {
-          "Ref": "usertelemetryDeployment7E6104C1b92209e22603c6e70ba35b81bbd468b3",
+          "Ref": "usertelemetryDeployment7E6104C110775ae7bde40fffbc3476e0df12b7be",
         },
         "RestApiId": Object {
           "Ref": "usertelemetry6D0235CF",
@@ -1079,11 +976,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -1091,21 +988,19 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
       "Type": "AWS::ApiGateway::Stage",
     },
-    "usertelemetrydomainnamecodeC4D075FD": Object {
+    "usertelemetrydomainnameTESTF3EFC436": Object {
       "Properties": Object {
         "CertificateArn": Object {
-          "Ref": "CertCODE",
+          "Ref": "Cert",
         },
         "DomainName": Object {
-          "Ref": "HostnameCODE",
+          "Ref": "Hostname",
         },
         "EndpointConfiguration": Object {
           "Types": Array [
@@ -1115,11 +1010,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Tags": Array [
           Object {
             "Key": "gu:cdk:version",
-            "Value": "38.2.0",
+            "Value": "45.0.0",
           },
           Object {
             "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
           },
           Object {
             "Key": "Stack",
@@ -1127,70 +1022,17 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           },
           Object {
             "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
+            "Value": "TEST",
           },
         ],
       },
       "Type": "AWS::ApiGateway::DomainName",
     },
-    "usertelemetrydomainnamecodeMaptelemetryusertelemetry6ED2ABD85ADB4540": Object {
+    "usertelemetrydomainnameTESTMaptelemetryusertelemetry6ED2ABD89A1E2F1F": Object {
       "Properties": Object {
         "BasePath": "",
         "DomainName": Object {
-          "Ref": "usertelemetrydomainnamecodeC4D075FD",
-        },
-        "RestApiId": Object {
-          "Ref": "usertelemetry6D0235CF",
-        },
-        "Stage": Object {
-          "Ref": "usertelemetryDeploymentStageprodD71A8078",
-        },
-      },
-      "Type": "AWS::ApiGateway::BasePathMapping",
-    },
-    "usertelemetrydomainnameprod9C4D5652": Object {
-      "Properties": Object {
-        "CertificateArn": Object {
-          "Ref": "CertPROD",
-        },
-        "DomainName": Object {
-          "Ref": "HostnamePROD",
-        },
-        "EndpointConfiguration": Object {
-          "Types": Array [
-            "EDGE",
-          ],
-        },
-        "Tags": Array [
-          Object {
-            "Key": "gu:cdk:version",
-            "Value": "38.2.0",
-          },
-          Object {
-            "Key": "gu:repo",
-            "Value": "guardian/tools-telemetry-service",
-          },
-          Object {
-            "Key": "Stack",
-            "Value": "flexible",
-          },
-          Object {
-            "Key": "Stage",
-            "Value": Object {
-              "Ref": "Stage",
-            },
-          },
-        ],
-      },
-      "Type": "AWS::ApiGateway::DomainName",
-    },
-    "usertelemetrydomainnameprodMaptelemetryusertelemetry6ED2ABD86E4ABB93": Object {
-      "Properties": Object {
-        "BasePath": "",
-        "DomainName": Object {
-          "Ref": "usertelemetrydomainnameprod9C4D5652",
+          "Ref": "usertelemetrydomainnameTESTF3EFC436",
         },
         "RestApiId": Object {
           "Ref": "usertelemetry6D0235CF",

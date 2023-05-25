@@ -47,7 +47,15 @@ function teardown {
   teardownEventApiLambda
 }
 
+function cdk {
+  pushd cdk
+  npm ci
+  npm test
+  popd
+}
+
 trap teardown EXIT
 
 setup
 teardown
+cdk
