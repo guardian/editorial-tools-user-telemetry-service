@@ -6,6 +6,14 @@ import { authenticated } from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 import type { AppConfig } from "./index";
 
+const sleep = (durationMs: number): Promise<void> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, durationMs);
+  });
+};
+
 export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
 
@@ -54,6 +62,11 @@ export const createApp = (initConfig: AppConfig): express.Application => {
             return;
           }
 
+          if (maybeEventData.value.some(event => event.type === 'BE_SLOW')) {
+            console.log('saw event BE_SLOW, so being slow');
+            await (sleep(15000));
+          }
+
           const fileKey = await putEventsIntoS3Bucket(maybeEventData.value);
           console.log(
             `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
@@ -66,3 +79,4 @@ export const createApp = (initConfig: AppConfig): express.Application => {
 
   return app;
 };
+
