@@ -44,7 +44,7 @@ describe("secrets", () => {
 
       const fakeGetSecret = buildGetSecret(currentSecret);
 
-      it("returns an empty current secret", async () => {
+      it("returns a current secret", async () => {
         const actualCurrentSecret = await getValidSecrets(
           "secretId",
           maxSecretAgeInSeconds,
