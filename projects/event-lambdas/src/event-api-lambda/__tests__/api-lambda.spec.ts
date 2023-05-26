@@ -1,13 +1,13 @@
 import { createApp } from "../application";
 import chai from "chai";
 import chaiHttp from "chai-http";
-import { authenticated } from "../../lib/authentication";
+import MockDate from "mockdate";
+import { PandaHmacAuthentication } from "../../lib/panda-hmac";
+import { AuthenticationStatus } from "@guardian/pan-domain-node";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
 }));
-
-jest.mock("../../lib/authentication");
 
 import { s3 } from "../../lib/aws";
 import { telemetryBucketName } from "../../lib/constants";
@@ -16,9 +16,12 @@ chai.use(chaiHttp);
 chai.should();
 
 describe("Event API lambda", () => {
-  const _Date = Date;
-  const constantDate = new Date("2020-09-03T17:34:37.839Z");
-  const originalAuthenticated = authenticated;
+  const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
+
+  const panDomainAuthentication = {
+    verify: (requestCookies: string) =>
+      Promise.resolve({ status: AuthenticationStatus.AUTHORISED }),
+  };
 
   beforeAll(async () => {
     try {
@@ -29,23 +32,23 @@ describe("Event API lambda", () => {
       );
     }
 
-    // @ts-ignore
-    global.Date = class extends Date {
-      constructor() {
-        super();
-        return constantDate;
-      }
-    };
-
-    (authenticated as any).mockImplementation(((_, __, ___, handler) => handler()) as typeof authenticated);
+    MockDate.set(constantDate);
   });
 
   afterAll(() => {
-    global.Date = _Date;
-    (authenticated as any).mockImplementation(originalAuthenticated);
+    MockDate.reset();
   });
 
-  const testApp = createApp();
+  // Simulates having AWSCURRENT & AWSPREVIOUS versions of a secret
+  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, [
+    "changeme",
+    "updated",
+  ]);
+
+  const testApp = createApp({
+    pandaHmacAuthentication,
+    panDomainAuthentication,
+  });
 
   describe("/healthcheck", () => {
     it("should return 200 from healthcheck", () => {
@@ -77,6 +80,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .then((res) => {
           expect(res.status).toBe(400);
           expect(res.body).toEqual(response);
@@ -114,6 +118,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(400);
@@ -149,6 +154,7 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(400);
@@ -170,9 +176,106 @@ describe("Event API lambda", () => {
       return chai
         .request(testApp)
         .post("/event")
+        .set("Cookie", "some_value")
         .send(request)
         .then((res) => {
           expect(res.status).toBe(201);
+        });
+    });
+
+    it("should return a 403 with no cookie header set", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(403);
+        });
+    });
+
+    describe("should accept a HMAC authenticated request", () => {
+      it("where the secret version is the first available (AWSCURRENT)", () => {
+        const request = [
+          {
+            app: "example-app",
+            stage: "PROD",
+            type: "USER_ACTION_1",
+            value: 1,
+            eventTime: "2020-09-04T10:37:24.480Z",
+          },
+        ];
+
+        // Secret value "changeme" used to generate this token
+        return chai
+          .request(testApp)
+          .post("/event")
+          .set(
+            "X-Gu-Tools-HMAC-Token",
+            "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8="
+          )
+          .set("X-Gu-Tools-HMAC-Date", constantDate)
+          .send(request)
+          .then((res) => {
+            expect(res.status).toBe(201);
+          });
+      });
+
+      it("where the secret version is the next available (AWSPREVIOUS)", () => {
+        const request = [
+          {
+            app: "example-app",
+            stage: "PROD",
+            type: "USER_ACTION_1",
+            value: 1,
+            eventTime: "2020-09-04T10:37:24.480Z",
+          },
+        ];
+
+        // Secret value "updated" used to generate this token
+        return chai
+          .request(testApp)
+          .post("/event")
+          .set(
+            "X-Gu-Tools-HMAC-Token",
+            "HMAC m+LeUv0AH9d67Je4dmVXpGKcZ29/6unB9OTqa6WQcfA="
+          )
+          .set("X-Gu-Tools-HMAC-Date", constantDate)
+          .send(request)
+          .then((res) => {
+            expect(res.status).toBe(201);
+          });
+      });
+    });
+
+    it("should return a 403 for an invalid HMAC authenticated request", () => {
+      const request = [
+        {
+          app: "example-app",
+          stage: "PROD",
+          type: "USER_ACTION_1",
+          value: 1,
+          eventTime: "2020-09-04T10:37:24.480Z",
+        },
+      ];
+
+      return chai
+        .request(testApp)
+        .post("/event")
+        .set("X-Gu-Tools-HMAC-Token", "bad-token")
+        .set("X-Gu-Tools-HMAC-Date", constantDate)
+        .send(request)
+        .then((res) => {
+          expect(res.status).toBe(403);
         });
     });
 
@@ -187,10 +290,14 @@ describe("Event API lambda", () => {
         },
       ];
 
-      const res = await chai.request(testApp).post("/event").send(request);
+      const res = await chai
+        .request(testApp)
+        .post("/event")
+        .set("Cookie", "some_value")
+        .send(request);
 
       const expectedResponse = {
-        message: "data/2020-09-03/2020-09-03T17:34:37.839Z-mock-uuid",
+        message: "data/2023-05-16/2023-05-16T10:36:38.000Z-mock-uuid",
         status: "ok",
       };
 

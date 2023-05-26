@@ -1,0 +1,1384 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`The telemetry stack matches the snapshot 1`] = `
+{
+  "Metadata": {
+    "gu:cdk:constructs": [
+      "GuDnsRecordSet",
+    ],
+    "gu:cdk:version": "TEST",
+  },
+  "Outputs": {
+    "EventApiHmacSecretArn": {
+      "Value": {
+        "Ref": "EventApiHmacSecret1C59BAF9",
+      },
+    },
+    "usertelemetryEndpointE4D637B1": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Ref": "usertelemetry6D0235CF",
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region",
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix",
+            },
+            "/",
+            {
+              "Ref": "usertelemetryDeploymentStageprodD71A8078",
+            },
+            "/",
+          ],
+        ],
+      },
+    },
+  },
+  "Parameters": {
+    "BucketName": {
+      "Description": "Name of the bucket to persist event data",
+      "Type": "String",
+    },
+    "Cert": {
+      "Description": "Certificate ARN for telemetry endpoint",
+      "Type": "String",
+    },
+    "Hostname": {
+      "Description": "Hostname for telemetry endpoint",
+      "Type": "String",
+    },
+    "KinesisArn": {
+      "Description": "ARN of the Kinesis stream to post event data",
+      "Type": "String",
+    },
+    "MaxLogSize": {
+      "Description": "Maximum size (in bytes) of log data from an individual request",
+      "Type": "String",
+    },
+    "PandaSettingsKey": {
+      "Description": "The location of the pan-domain authentication settings file",
+      "Type": "String",
+    },
+  },
+  "Resources": {
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691": {
+      "DependsOn": [
+        "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36",
+        "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
+      ],
+      "Properties": {
+        "Code": {
+          "ZipFile": "import boto3  # type: ignore
+import json
+import logging
+import urllib.request
+
+s3 = boto3.client("s3")
+
+EVENTBRIDGE_CONFIGURATION = 'EventBridgeConfiguration'
+
+CONFIGURATION_TYPES = ["TopicConfigurations", "QueueConfigurations", "LambdaFunctionConfigurations"]
+
+def handler(event: dict, context):
+  response_status = "SUCCESS"
+  error_message = ""
+  try:
+    props = event["ResourceProperties"]
+    bucket = props["BucketName"]
+    notification_configuration = props["NotificationConfiguration"]
+    request_type = event["RequestType"]
+    managed = props.get('Managed', 'true').lower() == 'true'
+    stack_id = event['StackId']
+
+    if managed:
+      config = handle_managed(request_type, notification_configuration)
+    else:
+      config = handle_unmanaged(bucket, stack_id, request_type, notification_configuration)
+
+    put_bucket_notification_configuration(bucket, config)
+  except Exception as e:
+    logging.exception("Failed to put bucket notification configuration")
+    response_status = "FAILED"
+    error_message = f"Error: {str(e)}. "
+  finally:
+    submit_response(event, context, response_status, error_message)
+
+def handle_managed(request_type, notification_configuration):
+  if request_type == 'Delete':
+    return {}
+  return notification_configuration
+
+def handle_unmanaged(bucket, stack_id, request_type, notification_configuration):
+  external_notifications = find_external_notifications(bucket, stack_id)
+
+  if request_type == 'Delete':
+    return external_notifications
+
+  def with_id(notification):
+    notification['Id'] = f"{stack_id}-{hash(json.dumps(notification, sort_keys=True))}"
+    return notification
+
+  notifications = {}
+  for t in CONFIGURATION_TYPES:
+    external = external_notifications.get(t, [])
+    incoming = [with_id(n) for n in notification_configuration.get(t, [])]
+    notifications[t] = external + incoming
+
+  if EVENTBRIDGE_CONFIGURATION in notification_configuration:
+    notifications[EVENTBRIDGE_CONFIGURATION] = notification_configuration[EVENTBRIDGE_CONFIGURATION]
+  elif EVENTBRIDGE_CONFIGURATION in external_notifications:
+    notifications[EVENTBRIDGE_CONFIGURATION] = external_notifications[EVENTBRIDGE_CONFIGURATION]
+
+  return notifications
+
+def find_external_notifications(bucket, stack_id):
+  existing_notifications = get_bucket_notification_configuration(bucket)
+  external_notifications = {}
+  for t in CONFIGURATION_TYPES:
+    external_notifications[t] = [n for n in existing_notifications.get(t, []) if not n['Id'].startswith(f"{stack_id}-")]
+
+  if EVENTBRIDGE_CONFIGURATION in existing_notifications:
+    external_notifications[EVENTBRIDGE_CONFIGURATION] = existing_notifications[EVENTBRIDGE_CONFIGURATION]
+
+  return external_notifications
+
+def get_bucket_notification_configuration(bucket):
+  return s3.get_bucket_notification_configuration(Bucket=bucket)
+
+def put_bucket_notification_configuration(bucket, notification_configuration):
+  s3.put_bucket_notification_configuration(Bucket=bucket, NotificationConfiguration=notification_configuration)
+
+def submit_response(event: dict, context, response_status: str, error_message: str):
+  response_body = json.dumps(
+    {
+      "Status": response_status,
+      "Reason": f"{error_message}See the details in CloudWatch Log Stream: {context.log_stream_name}",
+      "PhysicalResourceId": event.get("PhysicalResourceId") or event["LogicalResourceId"],
+      "StackId": event["StackId"],
+      "RequestId": event["RequestId"],
+      "LogicalResourceId": event["LogicalResourceId"],
+      "NoEcho": False,
+    }
+  ).encode("utf-8")
+  headers = {"content-type": "", "content-length": str(len(response_body))}
+  try:
+    req = urllib.request.Request(url=event["ResponseURL"], headers=headers, data=response_body, method="PUT")
+    with urllib.request.urlopen(req) as response:
+      print(response.read().decode("utf-8"))
+    print("Status code: " + response.reason)
+  except Exception as e:
+      print("send(..) failed executing request.urlopen(..): " + str(e))
+",
+        },
+        "Description": "AWS CloudFormation handler for "Custom::S3BucketNotifications" resources (@aws-cdk/aws-s3)",
+        "Handler": "index.handler",
+        "Role": {
+          "Fn::GetAtt": [
+            "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
+            "Arn",
+          ],
+        },
+        "Runtime": "python3.9",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "Timeout": 300,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:PutBucketNotification",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": "s3:GetBucketNotification",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleDefaultPolicy2CF63D36",
+        "Roles": [
+          {
+            "Ref": "BucketNotificationsHandler050a0587b7544547bf325f094a3db834RoleB6FB88EC",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "EventApiHmacSecret1C59BAF9": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "Description": "The HMAC secret key used to authenticate machine clients with the event-api-lambda",
+        "GenerateSecretString": {},
+        "Name": "/CODE/flexible/event-api-lambda/hmacSecret",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::SecretsManager::Secret",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "EventApiLambda6AA4ADA7": {
+      "DependsOn": [
+        "EventApiLambdaServiceRoleDefaultPolicy92CD0566",
+        "EventApiLambdaServiceRole3695319B",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "composer-dist",
+          "S3Key": "flexible/CODE/event-api-lambda/event-api-lambda.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "APP": "user-telemetry",
+            "HMAC_SECRET_LOCATION": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Fn::Select": [
+                      0,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      1,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      2,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+            "LOG_ENDPOINT_ENABLED": "true",
+            "MAX_LOG_SIZE": {
+              "Ref": "MaxLogSize",
+            },
+            "PANDA_SETTINGS_KEY": {
+              "Ref": "PandaSettingsKey",
+            },
+            "STACK": "flexible",
+            "STAGE": "CODE",
+            "TELEMETRY_BUCKET_NAME": {
+              "Ref": "BucketName",
+            },
+          },
+        },
+        "FunctionName": "event-api-lambda-CODE",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "EventApiLambdaServiceRole3695319B",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs14.x",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "user-telemetry",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "Timeout": 5,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "EventApiLambdaServiceRole3695319B": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "user-telemetry",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "EventApiLambdaServiceRoleDefaultPolicy92CD0566": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:PutObject",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "BucketName",
+                      },
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "BucketName",
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "EventApiLambdaServiceRoleDefaultPolicy92CD0566",
+        "Roles": [
+          {
+            "Ref": "EventApiLambdaServiceRole3695319B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "EventS3LambdaA2D7D547": {
+      "DependsOn": [
+        "EventS3LambdaServiceRoleDefaultPolicyC5FCC514",
+        "EventS3LambdaServiceRole34104ADE",
+      ],
+      "Properties": {
+        "Code": {
+          "S3Bucket": "composer-dist",
+          "S3Key": "flexible/CODE/event-s3-lambda/event-s3-lambda.zip",
+        },
+        "Environment": {
+          "Variables": {
+            "APP": "user-telemetry",
+            "HMAC_SECRET_LOCATION": {
+              "Fn::Join": [
+                "-",
+                [
+                  {
+                    "Fn::Select": [
+                      0,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      1,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    "Fn::Select": [
+                      2,
+                      {
+                        "Fn::Split": [
+                          "-",
+                          {
+                            "Fn::Select": [
+                              6,
+                              {
+                                "Fn::Split": [
+                                  ":",
+                                  {
+                                    "Ref": "EventApiHmacSecret1C59BAF9",
+                                  },
+                                ],
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+            "LOG_ENDPOINT_ENABLED": "true",
+            "MAX_LOG_SIZE": {
+              "Ref": "MaxLogSize",
+            },
+            "STACK": "flexible",
+            "STAGE": "CODE",
+            "TELEMETRY_BUCKET_NAME": {
+              "Ref": "BucketName",
+            },
+            "TELEMETRY_STREAM_NAME": {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    "/",
+                    {
+                      "Fn::Select": [
+                        5,
+                        {
+                          "Fn::Split": [
+                            ":",
+                            {
+                              "Ref": "KinesisArn",
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        "FunctionName": "event-s3-lambda-CODE",
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": {
+          "Fn::GetAtt": [
+            "EventS3LambdaServiceRole34104ADE",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs14.x",
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "user-telemetry",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+        "Timeout": 5,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "EventS3LambdaServiceRole34104ADE": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "App",
+            "Value": "user-telemetry",
+          },
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "EventS3LambdaServiceRoleDefaultPolicyC5FCC514": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "BucketName",
+                      },
+                    ],
+                  ],
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "BucketName",
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            {
+              "Action": "kinesis:PutRecords",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "KinesisArn",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "EventS3LambdaServiceRoleDefaultPolicyC5FCC514",
+        "Roles": [
+          {
+            "Ref": "EventS3LambdaServiceRole34104ADE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "telemetrybucketAllowBucketNotificationsTotelemetryEventS3LambdaF393B67EFDEA6CDB": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EventS3LambdaA2D7D547",
+            "Arn",
+          ],
+        },
+        "Principal": "s3.amazonaws.com",
+        "SourceAccount": {
+          "Ref": "AWS::AccountId",
+        },
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":s3:::",
+              {
+                "Ref": "BucketName",
+              },
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "telemetrybucketNotifications3F9E1150": {
+      "DependsOn": [
+        "telemetrybucketAllowBucketNotificationsTotelemetryEventS3LambdaF393B67EFDEA6CDB",
+      ],
+      "Properties": {
+        "BucketName": {
+          "Ref": "BucketName",
+        },
+        "Managed": false,
+        "NotificationConfiguration": {
+          "LambdaFunctionConfigurations": [
+            {
+              "Events": [
+                "s3:ObjectCreated:*",
+              ],
+              "LambdaFunctionArn": {
+                "Fn::GetAtt": [
+                  "EventS3LambdaA2D7D547",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+        },
+        "ServiceToken": {
+          "Fn::GetAtt": [
+            "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3BucketNotifications",
+    },
+    "telemetrydnsrecordCODE": {
+      "Properties": {
+        "Name": {
+          "Ref": "Hostname",
+        },
+        "RecordType": "CNAME",
+        "ResourceRecords": [
+          {
+            "Fn::GetAtt": [
+              "usertelemetrydomainnameCODE406C1FF2",
+              "DistributionDomainName",
+            ],
+          },
+        ],
+        "Stage": "CODE",
+        "TTL": 3600,
+      },
+      "Type": "Guardian::DNS::RecordSet",
+    },
+    "usertelemetry6D0235CF": {
+      "Properties": {
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE",
+          ],
+        },
+        "Name": "user-telemetry",
+        "Policy": {
+          "Statement": [
+            {
+              "Action": "execute-api:Invoke",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "*",
+              },
+              "Resource": "*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGateway::RestApi",
+    },
+    "usertelemetryANY08DB1886": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "EventApiLambda6AA4ADA7",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Fn::GetAtt": [
+            "usertelemetry6D0235CF",
+            "RootResourceId",
+          ],
+        },
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "usertelemetryANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANY598D9524": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EventApiLambda6AA4ADA7",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "usertelemetry6D0235CF",
+              },
+              "/test-invoke-stage/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "usertelemetryANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYD968F76A": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EventApiLambda6AA4ADA7",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "usertelemetry6D0235CF",
+              },
+              "/",
+              {
+                "Ref": "usertelemetryDeploymentStageprodD71A8078",
+              },
+              "/*/",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "usertelemetryAccount5FDE92D4": {
+      "DeletionPolicy": "Retain",
+      "DependsOn": [
+        "usertelemetry6D0235CF",
+      ],
+      "Properties": {
+        "CloudWatchRoleArn": {
+          "Fn::GetAtt": [
+            "usertelemetryCloudWatchRole308CB7B7",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ApiGateway::Account",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "usertelemetryCloudWatchRole308CB7B7": {
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "apigateway.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
+              ],
+            ],
+          },
+        ],
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "usertelemetryDeployment7E6104C12f9329f8cedbb365119a99881ae538e5": {
+      "DependsOn": [
+        "usertelemetryproxyANY639725AB",
+        "usertelemetryproxyEC8A2D95",
+        "usertelemetryANY08DB1886",
+      ],
+      "Properties": {
+        "Description": "Automatically created by the RestApi construct",
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Deployment",
+    },
+    "usertelemetryDeploymentStageprodD71A8078": {
+      "DependsOn": [
+        "usertelemetryAccount5FDE92D4",
+      ],
+      "Properties": {
+        "DeploymentId": {
+          "Ref": "usertelemetryDeployment7E6104C12f9329f8cedbb365119a99881ae538e5",
+        },
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+        "StageName": "prod",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGateway::Stage",
+    },
+    "usertelemetrydomainnameCODE406C1FF2": {
+      "Properties": {
+        "CertificateArn": {
+          "Ref": "Cert",
+        },
+        "DomainName": {
+          "Ref": "Hostname",
+        },
+        "EndpointConfiguration": {
+          "Types": [
+            "EDGE",
+          ],
+        },
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::ApiGateway::DomainName",
+    },
+    "usertelemetrydomainnameCODEMaptelemetryusertelemetry6ED2ABD8DCA5640A": {
+      "Properties": {
+        "BasePath": "",
+        "DomainName": {
+          "Ref": "usertelemetrydomainnameCODE406C1FF2",
+        },
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+        "Stage": {
+          "Ref": "usertelemetryDeploymentStageprodD71A8078",
+        },
+      },
+      "Type": "AWS::ApiGateway::BasePathMapping",
+    },
+    "usertelemetryproxyANY639725AB": {
+      "Properties": {
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "HttpMethod": "ANY",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition",
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region",
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "EventApiLambda6AA4ADA7",
+                    "Arn",
+                  ],
+                },
+                "/invocations",
+              ],
+            ],
+          },
+        },
+        "ResourceId": {
+          "Ref": "usertelemetryproxyEC8A2D95",
+        },
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Method",
+    },
+    "usertelemetryproxyANYApiPermissionTesttelemetryusertelemetry6ED2ABD8ANYproxy25554F9C": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EventApiLambda6AA4ADA7",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "usertelemetry6D0235CF",
+              },
+              "/test-invoke-stage/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "usertelemetryproxyANYApiPermissiontelemetryusertelemetry6ED2ABD8ANYproxy795F93FB": {
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "EventApiLambda6AA4ADA7",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              {
+                "Ref": "usertelemetry6D0235CF",
+              },
+              "/",
+              {
+                "Ref": "usertelemetryDeploymentStageprodD71A8078",
+              },
+              "/*/*",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "usertelemetryproxyEC8A2D95": {
+      "Properties": {
+        "ParentId": {
+          "Fn::GetAtt": [
+            "usertelemetry6D0235CF",
+            "RootResourceId",
+          ],
+        },
+        "PathPart": "{proxy+}",
+        "RestApiId": {
+          "Ref": "usertelemetry6D0235CF",
+        },
+      },
+      "Type": "AWS::ApiGateway::Resource",
+    },
+  },
+}
+`;

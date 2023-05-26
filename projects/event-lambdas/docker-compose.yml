@@ -8,7 +8,7 @@ services:
       - "4566-4599:4566-4599"
       - "${PORT_WEB_UI-8080}:${PORT_WEB_UI-8080}"
     environment:
-      - SERVICES=s3,kinesis
+      - SERVICES=s3,kinesis,secretsmanager
       - DEBUG=true
       - DATA_DIR=/tmp/localstack/data
       - KINESIS_ERROR_PROBABILITY=0

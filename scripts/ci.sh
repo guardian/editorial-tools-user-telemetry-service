@@ -39,8 +39,18 @@ function teardownEventApiLambda {
   docker-compose down
 }
 
-function setup {
+function setupApp {
   setupEventApiLambda
+}
+
+function setupCdk {
+  pushd cdk
+  npm ci
+  npm run lint:ci
+  npm run format:ci
+  npm run test
+  npm run synth
+  popd
 }
 
 function teardown {
@@ -49,5 +59,6 @@ function teardown {
 
 trap teardown EXIT
 
-setup
+setupCdk
+setupApp
 teardown

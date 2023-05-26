@@ -16,15 +16,16 @@ if (isRunningLocally) {
     accessKeyId: "xyz",
     secretAccessKey: "qwe",
     s3ForcePathStyle: true,
-    region: 'eu-west-1'
+    region: "eu-west-1"
   });
 }
 
 const awsOptions = isRunningLocally
   ? {
-      endpoint: "http://localhost:4566",
+      endpoint: "http://localhost:4566"
     }
   : undefined;
 
 export const s3 = new AWS.S3(awsOptions);
 export const kinesis = new AWS.Kinesis(awsOptions);
+export const secretManager = new AWS.SecretsManager(awsOptions);
