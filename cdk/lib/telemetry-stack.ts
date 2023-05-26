@@ -14,6 +14,7 @@ import {
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import { Effect, PolicyDocument, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Stream } from 'aws-cdk-lib/aws-kinesis';
+import type { FunctionProps } from 'aws-cdk-lib/aws-lambda';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
@@ -87,7 +88,7 @@ export class TelemetryStack extends GuStack {
 			'composer-dist',
 		);
 
-		const commonLambdaParams = {
+		const commonLambdaParams: Omit<FunctionProps, 'code'> = {
 			runtime: Runtime.NODEJS_14_X,
 			memorySize: 128,
 			timeout: Duration.seconds(5),
@@ -101,6 +102,7 @@ export class TelemetryStack extends GuStack {
 				TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
 				HMAC_SECRET_LOCATION: hmacSecret.secretName,
 			},
+			reservedConcurrentExecutions: 5,
 		};
 
 		/**
