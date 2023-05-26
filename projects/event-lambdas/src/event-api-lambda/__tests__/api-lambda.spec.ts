@@ -39,8 +39,10 @@ describe("Event API lambda", () => {
     MockDate.reset();
   });
 
+  // Simulates having AWSCURRENT & AWSPREVIOUS versions of a secret
   const pandaHmacAuthentication = new PandaHmacAuthentication(5000, [
     "changeme",
+    "updated",
   ]);
 
   const testApp = createApp({
@@ -201,29 +203,58 @@ describe("Event API lambda", () => {
         });
     });
 
-    it("should accept a HMAC authenticated request", () => {
-      const request = [
-        {
-          app: "example-app",
-          stage: "PROD",
-          type: "USER_ACTION_1",
-          value: 1,
-          eventTime: "2020-09-04T10:37:24.480Z",
-        },
-      ];
+    describe("should accept a HMAC authenticated request", () => {
+      it("where the secret version is the first available (AWSCURRENT)", () => {
+        const request = [
+          {
+            app: "example-app",
+            stage: "PROD",
+            type: "USER_ACTION_1",
+            value: 1,
+            eventTime: "2020-09-04T10:37:24.480Z",
+          },
+        ];
 
-      return chai
-        .request(testApp)
-        .post("/event")
-        .set(
-          "X-Gu-Tools-HMAC-Token",
-          "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8="
-        )
-        .set("X-Gu-Tools-HMAC-Date", constantDate)
-        .send(request)
-        .then((res) => {
-          expect(res.status).toBe(201);
-        });
+        // Secret value "changeme" used to generate this token
+        return chai
+          .request(testApp)
+          .post("/event")
+          .set(
+            "X-Gu-Tools-HMAC-Token",
+            "HMAC jKYKl/BNhd/l1Erpps6kL7kQIq3mGgztNQhbHaq0XP8="
+          )
+          .set("X-Gu-Tools-HMAC-Date", constantDate)
+          .send(request)
+          .then((res) => {
+            expect(res.status).toBe(201);
+          });
+      });
+
+      it("where the secret version is the next available (AWSPREVIOUS)", () => {
+        const request = [
+          {
+            app: "example-app",
+            stage: "PROD",
+            type: "USER_ACTION_1",
+            value: 1,
+            eventTime: "2020-09-04T10:37:24.480Z",
+          },
+        ];
+
+        // Secret value "updated" used to generate this token
+        return chai
+          .request(testApp)
+          .post("/event")
+          .set(
+            "X-Gu-Tools-HMAC-Token",
+            "HMAC m+LeUv0AH9d67Je4dmVXpGKcZ29/6unB9OTqa6WQcfA="
+          )
+          .set("X-Gu-Tools-HMAC-Date", constantDate)
+          .send(request)
+          .then((res) => {
+            expect(res.status).toBe(201);
+          });
+      });
     });
 
     it("should return a 403 for an invalid HMAC authenticated request", () => {
