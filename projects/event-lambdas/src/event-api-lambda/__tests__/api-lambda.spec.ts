@@ -297,7 +297,7 @@ describe("Event API lambda", () => {
         .send(request);
 
       const expectedResponse = {
-        message: "data/2023-05-16/2023-05-16T10:36:38.000Z-mock-uuid",
+        message: "data/example-app/PROD/USER_ACTION_1/2023-05-16/2023-05-16T10:36:38.000Z-mock-uuid",
         status: "ok",
       };
 

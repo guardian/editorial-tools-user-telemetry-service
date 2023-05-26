@@ -59,7 +59,7 @@ export const createApp = (initConfig: AppConfig): express.Application => {
             `Added ${maybeEventData.value.length} telemetry event(s) to S3 at key ${fileKey}`
           );
 
-          applyOkResponse(res, 201, fileKey);
+          applyOkResponse(res, 201, fileKey.join(","));
         }
       )
   );

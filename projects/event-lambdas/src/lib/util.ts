@@ -8,7 +8,6 @@ import { Either } from "./types";
 import { s3, kinesis } from "./aws";
 import { telemetryBucketName, telemetryStreamName } from "./constants";
 
-
 const ajv = new Ajv();
 const validateEventApiInput = ajv.compile(eventApiInputSchema);
 
@@ -29,29 +28,57 @@ export const parseEventJson = (
 export const putEventsIntoS3Bucket = async (
   events: IUserTelemetryEvent[],
   key?: string
-): Promise<string> => {
+): Promise<string[]> => {
   if (!telemetryBucketName) {
     throw new Error(
       `Configuration error: no value provided for environment variable TELEMETRY_BUCKET_NAME`
     );
   }
 
-  // Data is partitioned by day, in format YYYY-MM-DD. The filename
-  // contains an ISO date to aid discovery, and a uuid to ensure uniqueness.
-  const now = new Date();
-  const telemetryBucketKey =
-    key || `data/${getYYYYmmddDate(now)}/${now.toISOString()}-${uuidv4()}`;
-  const eventsJSON = convertEventsToNDJSON(events);
+  // Group records by app/stage/type for writing to S3
+  // 
+  // This function is unlikely to receive batched records  
+  // from multiple sources at present, but account for this
+  // now to prevent possible future issues.
+  const recordBatchesToWrite = events.reduce(
+    (
+      recordsByPrefix: Record<string, IUserTelemetryEvent[]>, 
+      currentEvent: IUserTelemetryEvent
+    ) => {
+      const eventPathPrefix = [
+        currentEvent.app || "UNDEFINED",
+        currentEvent.stage || "UNDEFINED",
+        currentEvent.type || "UNDEFINED",
+      ].join("/");
 
-  const params = {
-    Bucket: telemetryBucketName,
-    Key: telemetryBucketKey,
-    Body: eventsJSON,
-    ContentType: "application/json",
-  };
+      return eventPathPrefix in recordsByPrefix ? {...recordsByPrefix,
+        [eventPathPrefix]: recordsByPrefix[eventPathPrefix].concat([currentEvent])
+      } : {...recordsByPrefix,
+        [eventPathPrefix]: [currentEvent]
+      }
+    },
+    {} as Record<string, IUserTelemetryEvent[]>
+  );
 
-  await s3.putObject(params).promise();
-  return telemetryBucketKey;
+  const keysWritten = await Promise.all(Object.entries(recordBatchesToWrite).map(([pathPrefix, eventBatch]) => {
+    // Data is partitioned by app, stage, type and day, in format YYYY-MM-DD. 
+    // The filename contains an ISO date to aid discovery, and a uuid to ensure uniqueness.
+    const now = new Date();
+    const telemetryBucketKey =
+      key || `data/${pathPrefix}/${getYYYYmmddDate(now)}/${now.toISOString()}-${uuidv4()}`;
+    const eventBatchJSON = convertEventsToNDJSON(eventBatch);
+
+    const params = {
+      Bucket: telemetryBucketName,
+      Key: telemetryBucketKey,
+      Body: eventBatchJSON,
+      ContentType: "application/json",
+    };
+
+    return s3.putObject(params).promise().then((_) => telemetryBucketKey)
+  }))
+
+  return keysWritten;
 };
 
 export const getEventsFromS3File = async (
@@ -117,7 +144,6 @@ export const getEventsFromKinesisStream = async () => {
 };
 
 export const getYYYYmmddDate = (date: Date) => date.toISOString().split("T")[0];
-
 
 /**
  * Constructors for the Either type.
