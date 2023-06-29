@@ -5,7 +5,7 @@ import MockDate from "mockdate";
 describe("panda-hmac", () => {
   const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
   const requestPath = "/example/path";
-  const hmacAllowedDateOffsetInMillis = 5000;
+  const hmacAllowedDateOffsetInMillis = 300000;
   const pandaHmac = new PandaHmacAuthentication(hmacAllowedDateOffsetInMillis, [
     "changeme",
   ]);
@@ -56,7 +56,7 @@ describe("panda-hmac", () => {
     });
     it("fails to verify a token outside the allowed time window", () => {
       const requestDateOutsideWindow = new Date(
-        Date.parse(constantDate) + 5000
+        Date.parse(constantDate) + 300000
       ).toUTCString();
 
       const expectedRequestToken =
