@@ -42,7 +42,9 @@ export class PandaHmacAuthentication {
   verify(requestDate: string, path: string, requestToken: string): boolean {
     return this.hmacSecretKeys.some(
       (secretKey) =>
+        // Is the date in the header within the allowable range?
         isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&
+        // Check the HMAC head
         isHMACValid(secretKey, requestDate, path, requestToken)
     );
   }

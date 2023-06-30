@@ -7,4 +7,4 @@ export const pandaSettingsKey =
 export const hmacSecretLocation =
   process.env.HMAC_SECRET_LOCATION ||
   "/DEV/flexible/user-telemetry-service/hmacSecret";
-export const hmacAllowedDateOffsetInMillis = 5000;
+export const hmacAllowedDateOffsetInMillis = 300000;
