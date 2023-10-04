@@ -2,12 +2,15 @@
 
 A service to receive telemetry events and pass them on to a kinesis stream. Designed to be used across the Guardian's internal tooling to help the Journalism stream gather data about tool usage. The package is published as [@guardian/user-telemetry-client](https://www.npmjs.com/package/@guardian/user-telemetry-client).
 
+The service uses [pan-domain-authentication](https://github.com/guardian/pan-domain-authentication) to authenticate requests from clients, and [hmac](https://github.com/guardian/hmac-headers) to authenticate requests from servers.
+
 ```mermaid
 flowchart LR
-    subgraph Client
-    UTC[User telemetry client]
+    subgraph "Client (Browser)"
+    UTC[user-telemetry-client]
     end
-    UTC--HTTP POST /event-->AG[API Gateway]
+    UTC--"HTTP POST /event (cookie w/ pan-domain-auth)"-->AG[API Gateway]
+    SRV[Server]--"HTTP POST /event (headers w/ hmac auth)"-->AG
     subgraph "AWS (composer)"
     AG-->EAL[event-api-lambda]
     EAL--PutObject-->S3[(S3)]
@@ -17,7 +20,6 @@ flowchart LR
     subgraph "AWS (deploy-tools)"
     K-->CE[(Central ELK)]
     end
-
 ```
 
 ## Creating the stack
