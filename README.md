@@ -10,13 +10,14 @@ flowchart LR
     UTC--HTTP POST /event-->AG[API Gateway]
     subgraph "AWS (composer)"
     AG-->EAL[event-api-lambda]
-    EAL--PutObject-->S3
+    EAL--PutObject-->S3[(S3)]
     S3--PutObject Event-->ESL[event-s3-lambda]
-    ESL-->K[Kinesis]
+    ESL-->K[[Kinesis]]
     end
     subgraph "AWS (deploy-tools)"
-    K-->CE[Central ELK]
+    K-->CE[(Central ELK)]
     end
+
 ```
 
 ## Creating the stack
