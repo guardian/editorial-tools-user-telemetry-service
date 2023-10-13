@@ -82,7 +82,7 @@ jobs:
         with:
           projectName: Editorial Tools::Telemetry Service event lambda
           buildNumberOffset: 187
-          configPath: riff-raff.yaml
+          configPath: projects/event-lambdas/riff-raff.yaml
           contentDirectories: |
             event-api-lambda:
               - projects/event-lambdas/dist/event-api-lambda.zip
