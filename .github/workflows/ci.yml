@@ -67,21 +67,20 @@ jobs:
         run: npm run build
 
       - name: prepare the event-api-lambda zip
-        working-directory: projects/event-lambdas
-        run: zip -r -j event-api-lambda.zip dist/event-api-lambda/*
+        working-directory: projects/event-lambdas/dist
+        run: zip -r -j event-api-lambda.zip event-api-lambda/*
 
       - name: prepare the event-s3-lambda zip
-        working-directory: projects/event-lambdas
-        run: zip -r -j event-s3-lambda.zip dist/event-s3-lambda/*
+        working-directory: projects/event-lambdas/dist
+        run: zip -r -j event-s3-lambda.zip event-s3-lambda/*
 
       - uses: guardian/actions-riff-raff@v2
-        working-directory: projects/event-lambdas
         with:
           projectName: Editorial Tools::Telemetry Service event lambda
           buildNumberOffset: 187
           configPath: riff-raff.yaml
           contentDirectories: |
             event-api-lambda:
-              - event-api-lambda.zip
+              - projects/event-lambdas/dist/event-api-lambda.zip
             event-s3-lambda:
-              - event-s3-lambda.zip
+              - projects/event-lambdas/dist/event-s3-lambda.zip
