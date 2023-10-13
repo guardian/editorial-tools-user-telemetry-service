@@ -54,6 +54,10 @@ jobs:
           localstack wait -t 30                     # to become ready before timing out 
           echo "Startup complete"          
 
+      - name: Create LocalStack resources
+        working-directory: projects/event-lambdas
+        run: ./localstack/resources.sh
+
       - name: install lambda dependencies
         working-directory: projects/event-lambdas
         run: npm ci
