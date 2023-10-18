@@ -1,0 +1,90 @@
+# Find full documentation here https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+name: CI
+
+on:
+  pull_request:
+
+  # Manual invocation.
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+jobs:
+  CI:
+    runs-on: ubuntu-latest
+    permissions:
+      # required by aws-actions/configure-aws-credentials
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - uses: actions/setup-node@v3
+        with:
+            node-version-file: '.nvmrc'
+
+      - name: install cdk dependencies
+        working-directory: cdk
+        run: npm ci
+
+      - name: test cdk
+        working-directory: cdk
+        run: |
+          npm run lint:ci
+          npm run format:ci
+          npm run test
+
+      - name: synth cdk
+        working-directory: cdk
+        run: npm run synth
+
+      - name: Start LocalStack
+        run: |
+          pip install localstack awscli-local[ver1] # install LocalStack cli and awslocal
+          docker pull localstack/localstack         # Make sure to pull the latest version of the image
+          localstack start -d                       # Start LocalStack in the background
+          
+          echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
+          localstack wait -t 30                     # to become ready before timing out 
+          echo "Startup complete"          
+
+      - name: Create LocalStack resources
+        working-directory: projects/event-lambdas
+        run: ./localstack/resources.sh
+
+      - name: install lambda dependencies
+        working-directory: projects/event-lambdas
+        run: npm ci
+
+      - name: test lambdas
+        working-directory: projects/event-lambdas
+        run: npm run test
+      
+      - name: build lambdas
+        working-directory: projects/event-lambdas
+        run: npm run build
+
+      - name: prepare the event-api-lambda zip
+        working-directory: projects/event-lambdas/dist
+        run: zip -r -j event-api-lambda.zip event-api-lambda/*
+
+      - name: prepare the event-s3-lambda zip
+        working-directory: projects/event-lambdas/dist
+        run: zip -r -j event-s3-lambda.zip event-s3-lambda/*
+
+      - uses: guardian/actions-riff-raff@v2
+        with:
+          projectName: Editorial Tools::Telemetry Service event lambda
+          buildNumberOffset: 187
+          configPath: projects/event-lambdas/riff-raff.yaml
+          contentDirectories: |
+            event-api-lambda:
+              - projects/event-lambdas/dist/event-api-lambda.zip
+            event-s3-lambda:
+              - projects/event-lambdas/dist/event-s3-lambda.zip
