@@ -73,7 +73,7 @@ export class TelemetryStack extends GuStack {
 
 		const allowOphanAccessToHmac = new PolicyStatement({
 			effect: Effect.ALLOW,
-			principals: [new AccountPrincipal(GuardianAwsAccounts)],
+			principals: [new AccountPrincipal(GuardianAwsAccounts.Ophan)],
 			actions: ['secretsmanager:GetSecretValue'],
 			resources: [hmacSecret.secretArn],
 		});

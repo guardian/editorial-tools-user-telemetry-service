@@ -311,6 +311,40 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
     },
+    "EventApiHmacSecretPolicyC8C3661F": {
+      "Properties": {
+        "ResourcePolicy": {
+          "Statement": [
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::021353022223:root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "SecretId": {
+          "Ref": "EventApiHmacSecret1C59BAF9",
+        },
+      },
+      "Type": "AWS::SecretsManager::ResourcePolicy",
+    },
     "EventApiLambda6AA4ADA7": {
       "DependsOn": [
         "EventApiLambdaServiceRoleDefaultPolicy92CD0566",
