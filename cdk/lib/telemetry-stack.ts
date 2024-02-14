@@ -4,7 +4,7 @@ import {
 	GuDnsRecordSet,
 	RecordType,
 } from '@guardian/cdk/lib/constructs/dns/dns-records';
-import {GuardianAwsAccounts} from "@guardian/private-infrastructure-config";
+import { GuardianAwsAccounts } from '@guardian/private-infrastructure-config';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, CfnParameter, Duration, Tags } from 'aws-cdk-lib';
 import {
@@ -13,7 +13,12 @@ import {
 	LambdaRestApi,
 } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
-import {AccountPrincipal, Effect, PolicyDocument, PolicyStatement} from 'aws-cdk-lib/aws-iam';
+import {
+	AccountPrincipal,
+	Effect,
+	PolicyDocument,
+	PolicyStatement,
+} from 'aws-cdk-lib/aws-iam';
 import { Stream } from 'aws-cdk-lib/aws-kinesis';
 import type { FunctionProps } from 'aws-cdk-lib/aws-lambda';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -77,7 +82,7 @@ export class TelemetryStack extends GuStack {
 			actions: ['secretsmanager:GetSecretValue'],
 			resources: [hmacSecret.secretArn],
 		});
-		hmacSecret.addToResourcePolicy(allowOphanAccessToHmac)
+		hmacSecret.addToResourcePolicy(allowOphanAccessToHmac);
 
 		/**
 		 * S3 bucket – where our telemetry data is persisted
