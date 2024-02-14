@@ -18,6 +18,7 @@
     "@guardian/cdk": "50.5.0",
     "@guardian/eslint-config-typescript": "5.0.0",
     "@guardian/prettier": "3.0.0",
+    "@guardian/private-infrastructure-config": "github:guardian/private-infrastructure-config#v2.4.0",
     "@types/jest": "^29.5.1",
     "@types/node": "18.13.0",
     "aws-cdk": "2.77.0",
