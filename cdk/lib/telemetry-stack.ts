@@ -4,6 +4,7 @@ import {
 	GuDnsRecordSet,
 	RecordType,
 } from '@guardian/cdk/lib/constructs/dns/dns-records';
+import { GuRole } from '@guardian/cdk/lib/constructs/iam';
 import { GuardianAwsAccounts } from '@guardian/private-infrastructure-config';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, CfnParameter, Duration, Tags } from 'aws-cdk-lib';
@@ -14,7 +15,6 @@ import {
 } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import {
-	AccountPrincipal,
 	ArnPrincipal,
 	Effect,
 	PolicyDocument,
@@ -26,7 +26,6 @@ import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
-import { GuRole } from '@guardian/cdk/lib/constructs/iam';
 
 export class TelemetryStack extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
