@@ -4,6 +4,7 @@ exports[`The telemetry stack matches the snapshot 1`] = `
 {
   "Metadata": {
     "gu:cdk:constructs": [
+      "GuRole",
       "GuDnsRecordSet",
     ],
     "gu:cdk:version": "TEST",
@@ -310,40 +311,6 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
-    },
-    "EventApiHmacSecretPolicyC8C3661F": {
-      "Properties": {
-        "ResourcePolicy": {
-          "Statement": [
-            {
-              "Action": "secretsmanager:GetSecretValue",
-              "Effect": "Allow",
-              "Principal": {
-                "AWS": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":iam::021353022223:root",
-                    ],
-                  ],
-                },
-              },
-              "Resource": {
-                "Ref": "EventApiHmacSecret1C59BAF9",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "SecretId": {
-          "Ref": "EventApiHmacSecret1C59BAF9",
-        },
-      },
-      "Type": "AWS::SecretsManager::ResourcePolicy",
     },
     "EventApiLambda6AA4ADA7": {
       "DependsOn": [
@@ -866,6 +833,65 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Roles": [
           {
             "Ref": "EventS3LambdaServiceRole34104ADE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "hmacsecretaccessroleforophan2321E02C": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::021353022223:role/Dashboard-ES7-CODE-InstanceRoleDashboardes7armC36B-Q2DMTBZNZWBM",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "RoleName": "hmacSecretAccessRoleForOphan",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "hmacsecretaccessroleforophanDefaultPolicyBDE29EAC": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "hmacsecretaccessroleforophanDefaultPolicyBDE29EAC",
+        "Roles": [
+          {
+            "Ref": "hmacsecretaccessroleforophan2321E02C",
           },
         ],
       },
