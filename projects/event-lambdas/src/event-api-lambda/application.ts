@@ -13,8 +13,7 @@ export const createApp = (initConfig: AppConfig): express.Application => {
     const host = req.get("origin") || "";
     if (
       host.endsWith(".gutools.co.uk") ||
-      host.endsWith(".dev-gutools.co.uk") ||
-      host === "https://www.theguardian.com" // for use with Ophan Heatmap (a.k.a. Heatphan)
+      host.endsWith(".dev-gutools.co.uk")
     ) {
       res.header("Access-Control-Allow-Headers", "Content-Type");
       res.header("Access-Control-Allow-Origin", req.get("origin"));
