@@ -852,7 +852,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
           ],
           "Version": "2012-10-17",
         },
-        "RoleName": "hmacSecretAccessRoleForOphan",
+        "RoleName": "hmacSecretAccessRoleForOphan-CODE",
         "Tags": [
           {
             "Key": "gu:cdk:version",
