@@ -95,7 +95,7 @@ export class TelemetryStack extends GuStack {
 			this,
 			'hmac-secret-access-role-for-ophan',
 			{
-				roleName: 'hmacSecretAccessRoleForOphan',
+				roleName: `hmacSecretAccessRoleForOphan-${this.stage}`,
 				assumedBy: new ArnPrincipal(ophanDashboardIAMRoleName),
 			},
 		);
