@@ -26,6 +26,7 @@ import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import {GuStringParameter} from "@guardian/cdk/lib/constructs/core";
 
 export class TelemetryStack extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -83,20 +84,22 @@ export class TelemetryStack extends GuStack {
 			resources: [hmacSecret.secretArn],
 		});
 
-		let ophanDashboardIAMRoleName;
-
-		if (this.stage === 'PROD') {
-			ophanDashboardIAMRoleName = `arn:aws:iam::${GuardianAwsAccounts.Ophan}:role/Dashboard-ES7-ARM-PROD-InstanceRoleDashboardes7arm-14RL9OVM5RUM4`;
-		} else {
-			ophanDashboardIAMRoleName = `arn:aws:iam::${GuardianAwsAccounts.Ophan}:role/Dashboard-ES7-CODE-InstanceRoleDashboardes7armC36B-Q2DMTBZNZWBM`;
-		}
+		const ophanRoleArn = new GuStringParameter(
+			this,
+			'ophanRoleArn',
+			{
+				default: `/${this.stage}/${this.stack}/event-api-lambda/ophanRoleArn`,
+				fromSSM: true,
+				description: 'ARN of Ophan dashboard role that assumes the hmacSecretAccessRoleForOphan',
+			},
+		).valueAsString
 
 		const hmacSecretRoleForOphan = new GuRole(
 			this,
 			'hmac-secret-access-role-for-ophan',
 			{
 				roleName: `hmacSecretAccessRoleForOphan-${this.stage}`,
-				assumedBy: new ArnPrincipal(ophanDashboardIAMRoleName),
+				assumedBy: new ArnPrincipal(ophanRoleArn),
 			},
 		);
 		hmacSecretRoleForOphan.addToPolicy(allowOphanAccessToHmac);

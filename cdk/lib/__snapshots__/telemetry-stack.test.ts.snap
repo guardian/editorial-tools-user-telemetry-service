@@ -4,6 +4,7 @@ exports[`The telemetry stack matches the snapshot 1`] = `
 {
   "Metadata": {
     "gu:cdk:constructs": [
+      "GuStringParameter",
       "GuRole",
       "GuDnsRecordSet",
     ],
@@ -66,6 +67,11 @@ exports[`The telemetry stack matches the snapshot 1`] = `
     "PandaSettingsKey": {
       "Description": "The location of the pan-domain authentication settings file",
       "Type": "String",
+    },
+    "ophanRoleArn": {
+      "Default": "/CODE/flexible/event-api-lambda/ophanRoleArn",
+      "Description": "ARN of Ophan dashboard role that assumes the hmacSecretAccessRoleForOphan",
+      "Type": "AWS::SSM::Parameter::Value<String>",
     },
   },
   "Resources": {
@@ -846,7 +852,9 @@ def submit_response(event: dict, context, response_status: str, error_message: s
               "Action": "sts:AssumeRole",
               "Effect": "Allow",
               "Principal": {
-                "AWS": "arn:aws:iam::021353022223:role/Dashboard-ES7-CODE-InstanceRoleDashboardes7armC36B-Q2DMTBZNZWBM",
+                "AWS": {
+                  "Ref": "ophanRoleArn",
+                },
               },
             },
           ],
