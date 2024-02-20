@@ -1,9 +1,11 @@
+import { GuStringParameter } from '@guardian/cdk/lib/constructs/core';
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core/stack';
 import { GuStack } from '@guardian/cdk/lib/constructs/core/stack';
 import {
 	GuDnsRecordSet,
 	RecordType,
 } from '@guardian/cdk/lib/constructs/dns/dns-records';
+import { GuRole } from '@guardian/cdk/lib/constructs/iam';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, CfnParameter, Duration, Tags } from 'aws-cdk-lib';
 import {
@@ -12,7 +14,12 @@ import {
 	LambdaRestApi,
 } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
-import { Effect, PolicyDocument, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import {
+	ArnPrincipal,
+	Effect,
+	PolicyDocument,
+	PolicyStatement,
+} from 'aws-cdk-lib/aws-iam';
 import { Stream } from 'aws-cdk-lib/aws-kinesis';
 import type { FunctionProps } from 'aws-cdk-lib/aws-lambda';
 import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
@@ -69,6 +76,29 @@ export class TelemetryStack extends GuStack {
 			description:
 				'The HMAC secret key used to authenticate machine clients with the event-api-lambda',
 		});
+
+		const allowOphanAccessToHmac = new PolicyStatement({
+			effect: Effect.ALLOW,
+			actions: ['secretsmanager:GetSecretValue'],
+			resources: [hmacSecret.secretArn],
+		});
+
+		const ophanRoleArn = new GuStringParameter(this, 'ophanRoleArn', {
+			default: `/${this.stage}/${this.stack}/event-api-lambda/ophanRoleArn`,
+			fromSSM: true,
+			description:
+				'ARN of Ophan dashboard role that assumes the hmacSecretAccessRoleForOphan',
+		}).valueAsString;
+
+		const hmacSecretRoleForOphan = new GuRole(
+			this,
+			'hmac-secret-access-role-for-ophan',
+			{
+				roleName: `hmacSecretAccessRoleForOphan-${this.stage}`,
+				assumedBy: new ArnPrincipal(ophanRoleArn),
+			},
+		);
+		hmacSecretRoleForOphan.addToPolicy(allowOphanAccessToHmac);
 
 		/**
 		 * S3 bucket – where our telemetry data is persisted
