@@ -1,3 +1,4 @@
+import { GuStringParameter } from '@guardian/cdk/lib/constructs/core';
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core/stack';
 import { GuStack } from '@guardian/cdk/lib/constructs/core/stack';
 import {
@@ -5,7 +6,6 @@ import {
 	RecordType,
 } from '@guardian/cdk/lib/constructs/dns/dns-records';
 import { GuRole } from '@guardian/cdk/lib/constructs/iam';
-import { GuardianAwsAccounts } from '@guardian/private-infrastructure-config';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, CfnParameter, Duration, Tags } from 'aws-cdk-lib';
 import {
@@ -26,7 +26,6 @@ import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
-import {GuStringParameter} from "@guardian/cdk/lib/constructs/core";
 
 export class TelemetryStack extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -84,15 +83,12 @@ export class TelemetryStack extends GuStack {
 			resources: [hmacSecret.secretArn],
 		});
 
-		const ophanRoleArn = new GuStringParameter(
-			this,
-			'ophanRoleArn',
-			{
-				default: `/${this.stage}/${this.stack}/event-api-lambda/ophanRoleArn`,
-				fromSSM: true,
-				description: 'ARN of Ophan dashboard role that assumes the hmacSecretAccessRoleForOphan',
-			},
-		).valueAsString
+		const ophanRoleArn = new GuStringParameter(this, 'ophanRoleArn', {
+			default: `/${this.stage}/${this.stack}/event-api-lambda/ophanRoleArn`,
+			fromSSM: true,
+			description:
+				'ARN of Ophan dashboard role that assumes the hmacSecretAccessRoleForOphan',
+		}).valueAsString;
 
 		const hmacSecretRoleForOphan = new GuRole(
 			this,

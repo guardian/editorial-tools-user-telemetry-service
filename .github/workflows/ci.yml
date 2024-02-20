@@ -29,10 +29,6 @@ jobs:
         with:
           node-version-file: '.nvmrc'
 
-      - uses: guardian/actions-read-private-repos@v0.1.0
-        with:
-          private-ssh-keys: ${{ secrets.PRIVATE_INFRASTRUCTURE_CONFIG_DEPLOY_KEY }}
-
       - name: Install CDK dependencies
         working-directory: cdk
         run: npm ci
