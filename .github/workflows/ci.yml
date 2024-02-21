@@ -65,7 +65,7 @@ jobs:
       - name: test lambdas
         working-directory: projects/event-lambdas
         run: npm run test
-      
+
       - name: build lambdas
         working-directory: projects/event-lambdas
         run: npm run build
@@ -82,8 +82,10 @@ jobs:
         with:
           projectName: Editorial Tools::Telemetry Service event lambda
           buildNumberOffset: 187
-          configPath: projects/event-lambdas/riff-raff.yaml
+          configPath: cdk/cdk.out/riff-raff.yaml
           contentDirectories: |
+            cdk.out:
+              - cdk/cdk.out
             event-api-lambda:
               - projects/event-lambdas/dist/event-api-lambda.zip
             event-s3-lambda:

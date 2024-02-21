@@ -19,7 +19,7 @@ deployments:
         CODE: TelemetryStackCODE.template.json
   event-api-lambda:
     type: aws-lambda
-    app: user-telemetry
+    app: event-api-lambda
     contentDirectory: event-api-lambda
     parameters:
       prefixStack: false
@@ -32,7 +32,7 @@ deployments:
       - flexible
   event-s3-lambda:
     type: aws-lambda
-    app: user-telemetry
+    app: event-s3-lambda
     contentDirectory: event-s3-lambda
     parameters:
       prefixStack: false
