@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`The riff-raff output YAML matches the snapshot 1`] = `
+"allowedStages:
+  - PROD
+  - CODE
+deployments:
+  cfn-eu-west-1-flexible-telemetry-stack:
+    type: cloud-formation
+    regions:
+      - eu-west-1
+    stacks:
+      - flexible
+    app: telemetry-stack
+    contentDirectory: cdk.out
+    parameters:
+      templateStagePaths:
+        PROD: TelemetryStackPROD.template.json
+        CODE: TelemetryStackCODE.template.json
+  event-api-lambda:
+    type: aws-lambda
+    app: user-telemetry
+    contentDirectory: event-api-lambda
+    parameters:
+      prefixStack: false
+      fileName: event-api-lambda.zip
+      functionNames:
+        - event-api-lambda-
+    regions:
+      - eu-west-1
+    stacks:
+      - flexible
+  event-s3-lambda:
+    type: aws-lambda
+    app: user-telemetry
+    contentDirectory: event-s3-lambda
+    parameters:
+      prefixStack: false
+      fileName: event-s3-lambda.zip
+      functionNames:
+        - event-s3-lambda-
+    regions:
+      - eu-west-1
+    stacks:
+      - flexible
+"
+`;

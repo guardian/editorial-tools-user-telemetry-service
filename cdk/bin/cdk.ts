@@ -22,7 +22,7 @@ new TelemetryStack(app, 'TelemetryStackCODE', {
 	stage: 'CODE',
 });
 
-const riffRaff = new RiffRaffYamlFile(app);
+export const riffRaff = new RiffRaffYamlFile(app);
 const {
 	riffRaffYaml: { deployments },
 } = riffRaff;
@@ -33,7 +33,7 @@ const {
 ['event-api-lambda', 'event-s3-lambda'].forEach((lambdaName) => {
 	deployments.set(lambdaName, {
 		type: 'aws-lambda',
-		app: 'user-telemetry',
+		app: lambdaName,
 		contentDirectory: lambdaName,
 		parameters: {
 			prefixStack: false,
