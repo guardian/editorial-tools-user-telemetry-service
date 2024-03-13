@@ -132,7 +132,7 @@ export class TelemetryStack extends GuStack {
 				TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
 				HMAC_SECRET_LOCATION: hmacSecret.secretName,
 			},
-			reservedConcurrentExecutions: 5,
+			reservedConcurrentExecutions: 15,
 		};
 
 		/**
