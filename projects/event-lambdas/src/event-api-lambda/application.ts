@@ -20,7 +20,13 @@ export const createApp = (initConfig: AppConfig): express.Application => {
       res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
       res.header("Access-Control-Allow-Credentials", "true");
     }
-    next();
+    if (req.method === "OPTIONS") {
+      res.header("Vary", "Origin")
+      res.header("Cache-control", "max-age=600")
+      res.send(200);
+    } else {
+      next();
+    }
   });
 
   app.get("/healthcheck", (_: Request, res: Response) => {
