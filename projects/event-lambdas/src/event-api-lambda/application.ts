@@ -19,14 +19,9 @@ export const createApp = (initConfig: AppConfig): express.Application => {
       res.header("Access-Control-Allow-Origin", req.get("origin"));
       res.header("Access-Control-Allow-Methods", "OPTIONS,POST,GET");
       res.header("Access-Control-Allow-Credentials", "true");
+      res.header("Access-Control-Max-Age", "86400");
     }
-    if (req.method === "OPTIONS") {
-      res.header("Vary", "Origin")
-      res.header("Cache-control", "max-age=600")
-      res.send(200);
-    } else {
-      next();
-    }
+    next();
   });
 
   app.get("/healthcheck", (_: Request, res: Response) => {
