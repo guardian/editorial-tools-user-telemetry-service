@@ -1,4 +1,4 @@
-import { ContextKeys } from '@guardian/cdk/lib/constants';
+import { ContextKeys } from '@guardian/cdk/lib/constants/context-keys';
 import { App } from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { TelemetryStack } from './telemetry-stack';
