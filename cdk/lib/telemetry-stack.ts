@@ -274,7 +274,7 @@ export class TelemetryStack extends GuStack {
 
 		new GuCname(this, `telemetry-dns-record-${this.stage}`, {
 			domainName: telemetryHostName.valueAsString,
-			app: "user-telemetry-service",
+			app: 'user-telemetry-service',
 			resourceRecord: telemetryDomainName.domainNameAliasDomainName,
 			ttl: Duration.seconds(3600),
 		});
