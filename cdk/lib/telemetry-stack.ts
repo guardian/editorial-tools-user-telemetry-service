@@ -115,7 +115,7 @@ export class TelemetryStack extends GuStack {
 		);
 
 		const commonLambdaParams: Omit<FunctionProps, 'code'> = {
-			runtime: Runtime.NODEJS_14_X,
+			runtime: Runtime.NODEJS_20_X,
 			memorySize: 128,
 			timeout: Duration.seconds(5),
 			handler: 'index.handler',
