@@ -36,13 +36,13 @@ export const putEventsIntoS3Bucket = async (
   }
 
   // Group records by app/stage/type for writing to S3
-  // 
-  // This function is unlikely to receive batched records  
+  //
+  // This function is unlikely to receive batched records
   // from multiple sources at present, but account for this
   // now to prevent possible future issues.
   const recordBatchesToWrite = events.reduce(
     (
-      recordsByPrefix: Record<string, IUserTelemetryEvent[]>, 
+      recordsByPrefix: Record<string, IUserTelemetryEvent[]>,
       currentEvent: IUserTelemetryEvent
     ) => {
       const eventPathPrefix = [
@@ -61,7 +61,7 @@ export const putEventsIntoS3Bucket = async (
   );
 
   const keysWritten = await Promise.all(Object.entries(recordBatchesToWrite).map(([pathPrefix, eventBatch]) => {
-    // Data is partitioned by app, stage, type and day, in format YYYY-MM-DD. 
+    // Data is partitioned by app, stage, type and day, in format YYYY-MM-DD.
     // The filename contains an ISO date to aid discovery, and a uuid to ensure uniqueness.
     const now = new Date();
     const telemetryBucketKey =
@@ -116,7 +116,9 @@ export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
   const Records = events.map((event) => ({
     Data: JSON.stringify({
       "@timestamp": event.eventTime,
-      ...event
+      ...event,
+      tags: undefined, // 'tags' is a reserved field name since logstash v8...
+      _tags: event.tags, // ... so now we re-write to _tags
     }),
     // Ordering doesn't matter
     PartitionKey: uuidv4(),
