@@ -23,7 +23,7 @@
     "typescript": "^3.5.3"
   },
   "scripts": {
-    "build": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m && ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m",
+    "build": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m && ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m && ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m",
     "start": "ts-node-dev --ignore-watch node_modules src/event-api-lambda/index.ts",
     "test": "JEST_CIRCUS=1 jest --coverage",
     "test:watch": "JEST_CIRCUS=1 jest --watch",
