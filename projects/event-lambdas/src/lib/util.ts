@@ -114,7 +114,10 @@ export const convertNDJSONToEvents = (json: string) => {
 
 export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
   const Records = events.map((event) => ({
-    Data: JSON.stringify(event),
+    Data: JSON.stringify({
+      "@timestamp": event.eventTime,
+      ...event
+    }),
     // Ordering doesn't matter
     PartitionKey: uuidv4(),
   }));
