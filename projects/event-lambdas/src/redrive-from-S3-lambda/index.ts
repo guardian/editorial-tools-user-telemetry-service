@@ -64,18 +64,12 @@ export const handler = async (
 
     const events = eventsArrays.flat();
 
-    await new Promise(resolve =>
-      setInterval(() => {
-
-      }, 1000) // once batch of records per second to avoid kinesis throttling
-    );
-
     for(let i = 0; i < Math.ceil(events.length / 50); i++) {
       const chunk = events.slice(i * 50, (i + 1) * 50);
       chunk.length > 0 && await putEventsToKinesisStream(chunk);
       console.log(`Written ${chunk.length} of ${events.length} events to Kinesis`);
       // one batch of records per second to avoid kinesis throttling
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await (new Promise(resolve => setTimeout(resolve, 1000)));
     }
 
     if(!pageOfFilesResponse.IsTruncated) {

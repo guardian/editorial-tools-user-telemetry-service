@@ -112,7 +112,7 @@ export const convertNDJSONToEvents = (json: string) => {
   return events;
 };
 
-export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
+export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) => {
   const Records = events.map((event) => ({
     Data: JSON.stringify({
       "@timestamp": event.eventTime,
@@ -123,11 +123,15 @@ export const putEventsToKinesisStream = (events: IUserTelemetryEvent[]) => {
     // Ordering doesn't matter
     PartitionKey: uuidv4(),
   }));
-  const params = {
+  const putRecordsResult = await kinesis.putRecords({
     Records,
     StreamName: telemetryStreamName,
-  };
-  return kinesis.putRecords(params).promise();
+  }).promise();
+  const recordsWithErrors = putRecordsResult.Records.filter(_ => !!_.ErrorCode);
+  if(recordsWithErrors.length > 0) {
+    console.error("Failed to write some records to Kinesis", recordsWithErrors)
+  }
+  return putRecordsResult;
 };
 
 export const getEventsFromKinesisStream = async () => {
