@@ -3,7 +3,9 @@ import {s3} from "../lib/aws";
 import {telemetryBucketName} from "../lib/constants";
 import {Marker} from "aws-sdk/clients/s3";
 
-const tenMinsInMillis = 10 * 60 * 1000;
+const oneMinInMillis = 60 * 1000;
+const tenMinsInMillis = 10 * oneMinInMillis;
+const fourteenMinsInMillis = 14 * oneMinInMillis;
 
 type MarkerDone = null;
 
@@ -64,8 +66,20 @@ export const handler = async (
 
     const events = eventsArrays.flat();
 
-    for(let i = 0; i < Math.ceil(events.length / 50); i++) {
-      const chunk = events.slice(i * 50, (i + 1) * 50);
+    const chunkSize = 50;
+
+    const numberOfChunks = Math.ceil(events.length / chunkSize);
+
+    const expectedDurationToSendChunks = numberOfChunks * 1100; // 1.1s per chunk, to allow for request duration in addition to 1s delay
+
+    const lambdaElapsedMillis = new Date().getTime() - startTimeEpoch;
+    // if we don't have enough time to do all the chunks before lambda timeout, then return the starting marker and allow the step function to loop
+    if(fourteenMinsInMillis - lambdaElapsedMillis < expectedDurationToSendChunks) {
+      return maybeMarker!;
+    }
+
+    for(let i = 0; i < numberOfChunks; i++) {
+      const chunk = events.slice(i * chunkSize, (i + 1) * chunkSize);
       chunk.length > 0 && await putEventsToKinesisStream(chunk);
       console.log(`Written ${chunk.length} of ${events.length} events to Kinesis`);
       // one batch of records per second to avoid kinesis throttling
