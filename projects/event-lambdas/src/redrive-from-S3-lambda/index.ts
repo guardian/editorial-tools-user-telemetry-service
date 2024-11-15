@@ -27,7 +27,7 @@ export const handler = async (
     const pageOfFilesResponse = await s3.listObjects({
       Bucket: telemetryBucketName,
       Marker: maybeMarker,
-      MaxKeys: 1000, // max allowed
+      MaxKeys: 500, // max allowed
     }).promise();
 
     const pageOfFiles = pageOfFilesResponse.Contents;
