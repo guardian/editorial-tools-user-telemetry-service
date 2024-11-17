@@ -7,6 +7,7 @@ import { IUserTelemetryEvent } from "../../../definitions/IUserTelemetryEvent";
 import { Either } from "./types";
 import { s3, kinesis } from "./aws";
 import { telemetryBucketName, telemetryStreamName } from "./constants";
+import {PutRecordsRequestEntryList} from "aws-sdk/clients/kinesis";
 
 const ajv = new Ajv();
 const validateEventApiInput = ajv.compile(eventApiInputSchema);
@@ -112,26 +113,53 @@ export const convertNDJSONToEvents = (json: string) => {
   return events;
 };
 
+const oneMegabyteInBytes = 1024 * 1024;
 export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) => {
-  const Records = events.map((event) => ({
-    Data: JSON.stringify({
-      "@timestamp": event.eventTime,
-      ...event,
-      tags: undefined, // 'tags' is a reserved field name since logstash v8...
-      _tags: event.tags, // ... so now we re-write to _tags
-    }),
-    // Ordering doesn't matter
-    PartitionKey: uuidv4(),
-  }));
-  const putRecordsResult = await kinesis.putRecords({
-    Records,
-    StreamName: telemetryStreamName,
-  }).promise();
-  const recordsWithErrors = putRecordsResult.Records.filter(_ => !!_.ErrorCode);
-  if(recordsWithErrors.length > 0) {
-    console.error("Failed to write some records to Kinesis", recordsWithErrors)
+  const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
+    const record = {
+      Data: JSON.stringify({
+        "@timestamp": event.eventTime,
+        ...event,
+        tags: undefined, // 'tags' is a reserved field name since logstash v8...
+        _tags: event.tags, // ... so now we re-write to _tags
+      }),
+      // Ordering doesn't matter
+      PartitionKey: uuidv4(),
+    };
+    const currentChunk = acc[acc.length - 1];
+    if(!currentChunk){
+      return [[record]]
+    }
+    else if(currentChunk.length < 500 && Buffer.byteLength(JSON.stringify(currentChunk) + JSON.stringify(record)) < oneMegabyteInBytes){
+      return [...acc.slice(0, -1), [...currentChunk, record]];
+    }
+    else {
+      return [...acc, [record]];
+    }
+  }, [] as PutRecordsRequestEntryList[]);
+
+  for (const Records of chunkedRecords) {
+    const chunkStartTime = new Date().getTime();
+    const putRecordsResult = await kinesis.putRecords({
+      Records,
+      StreamName: telemetryStreamName,
+    }).promise();
+
+    const recordsWithErrors = putRecordsResult.Records.filter(_ => !!_.ErrorCode);
+    if(recordsWithErrors.length > 0) {
+      console.error("Failed to write some records to Kinesis", recordsWithErrors)
+    }
+
+    console.log(`Written ${Records.length} of ${events.length} events to Kinesis`);
+
+    const chunkEndTime = new Date().getTime();
+    const chunkDurationInMillis = chunkEndTime - chunkStartTime;
+
+    // max throughput is 1MB per second
+    if(chunkDurationInMillis < 1000 && chunkedRecords.length > 1){
+      await new Promise(resolve => setTimeout(resolve, 1000 - chunkDurationInMillis))
+    }
   }
-  return putRecordsResult;
 };
 
 export const getEventsFromKinesisStream = async () => {

@@ -29,7 +29,7 @@ export const handler = async (
     const pageOfFilesResponse = await s3.listObjects({
       Bucket: telemetryBucketName,
       Marker: maybeMarker,
-      MaxKeys: 500, // max allowed
+      MaxKeys: 500, // although max is 1000, we want to ensure the lambda can send all the events before timing out and some event files are massive
     }).promise();
 
     const pageOfFiles = pageOfFilesResponse.Contents;
@@ -66,25 +66,7 @@ export const handler = async (
 
     const events = eventsArrays.flat();
 
-    const chunkSize = 50;
-
-    const numberOfChunks = Math.ceil(events.length / chunkSize);
-
-    const expectedDurationToSendChunks = numberOfChunks * 1100; // 1.1s per chunk, to allow for request duration in addition to 1s delay
-
-    const lambdaElapsedMillis = new Date().getTime() - startTimeEpoch;
-    // if we don't have enough time to do all the chunks before lambda timeout, then return the starting marker and allow the step function to loop
-    if(fourteenMinsInMillis - lambdaElapsedMillis < expectedDurationToSendChunks) {
-      return maybeMarker!;
-    }
-
-    for(let i = 0; i < numberOfChunks; i++) {
-      const chunk = events.slice(i * chunkSize, (i + 1) * chunkSize);
-      chunk.length > 0 && await putEventsToKinesisStream(chunk);
-      console.log(`Written ${chunk.length} of ${events.length} events to Kinesis`);
-      // one batch of records per second to avoid kinesis throttling
-      await (new Promise(resolve => setTimeout(resolve, 1000)));
-    }
+    await putEventsToKinesisStream(events);
 
     if(!pageOfFilesResponse.IsTruncated) {
       console.log("No more files to process. Re-drive complete 🎉")
