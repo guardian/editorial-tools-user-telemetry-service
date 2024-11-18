@@ -114,7 +114,7 @@ export const convertNDJSONToEvents = (json: string) => {
 };
 
 const fiveMegabyteInBytes = 5 * 1024 * 1024;
-export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) => {
+export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], options?: { shouldThrowOnError?: boolean }) => {
   const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
     const record = {
       Data: JSON.stringify({
@@ -148,6 +148,9 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) =>
     const recordsWithErrors = putRecordsResult.Records.filter(_ => !!_.ErrorCode);
     if(recordsWithErrors.length > 0) {
       console.error("Failed to write some records to Kinesis", recordsWithErrors)
+      if(options?.shouldThrowOnError){
+        throw new Error(`Failed to write ${recordsWithErrors.length} records to Kinesis. Terminating.`)
+      }
     }
 
     console.log(`Written ${Records.length} of ${events.length} events to Kinesis`);

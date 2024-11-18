@@ -64,7 +64,7 @@ export const handler = async (
 
     const events = eventsArrays.flat();
 
-    await putEventsToKinesisStream(events);
+    await putEventsToKinesisStream(events, {shouldThrowOnError: true});
 
     if(!pageOfFilesResponse.IsTruncated) {
       console.log("No more files to process. Re-drive complete 🎉")
