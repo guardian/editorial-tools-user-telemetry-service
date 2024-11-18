@@ -1203,6 +1203,17 @@ def submit_response(event: dict, context, response_status: str, error_message: s
                 "Ref": "KinesisArn",
               },
             },
+            {
+              "Action": [
+                "kinesis:UpdateShardCount",
+                "kinesis:DescribeStream",
+                "kinesis:ListShards",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "KinesisArn",
+              },
+            },
           ],
           "Version": "2012-10-17",
         },

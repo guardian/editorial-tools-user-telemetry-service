@@ -1,19 +1,36 @@
-import {getEventsFromS3File, putEventsToKinesisStream} from "../lib/util";
+import {
+  getEventsFromS3File,
+  putEventsToKinesisStream,
+  commenceScaleKinesisShardCount,
+} from "../lib/util";
 import {s3} from "../lib/aws";
 import {telemetryBucketName} from "../lib/constants";
 import {Marker} from "aws-sdk/clients/s3";
 
 const oneMinInMillis = 60 * 1000;
 const tenMinsInMillis = 10 * oneMinInMillis;
-const fourteenMinsInMillis = 14 * oneMinInMillis;
+const thirteenMinsInMillis = 13 * oneMinInMillis;
 
+const SCALING_DOWN_KINESIS = "SCALING_DOWN_KINESIS" as const;
 type MarkerDone = null;
 
 export const handler = async (
-  event: { Payload?: Marker | unknown }
-): Promise<Marker | MarkerDone> => {
+  event: { Payload?: Marker | typeof SCALING_DOWN_KINESIS | unknown }
+): Promise<Marker | MarkerDone | typeof SCALING_DOWN_KINESIS> => {
 
   const startTimeEpoch = new Date().getTime();
+
+  if(event?.Payload === SCALING_DOWN_KINESIS) {
+    while(new Date().getTime() - startTimeEpoch < thirteenMinsInMillis) {
+      const targetShardCount = await commenceScaleKinesisShardCount("half");
+      if(targetShardCount === 1) {
+        console.log("Kinesis has scaled back down to 1 shard. Re-drive complete 🎉")
+        return null;
+      }
+      await new Promise(resolve => setTimeout(resolve, oneMinInMillis));
+    }
+    return SCALING_DOWN_KINESIS; // too close to timing out, so finish the lambda and allow the step function to loop
+  }
 
   if(typeof event?.Payload !== "undefined" && typeof event?.Payload !== "string") {
     console.error("Invalid input.", event)
@@ -39,7 +56,6 @@ export const handler = async (
       return null;
     }
 
-
     console.log(`page of files: ${pageOfFiles.length}, starting at ${pageOfFilesResponse.Marker}`);
 
     const eventsArrays = await Promise.all(pageOfFiles.map(async (file, index) => {
@@ -64,11 +80,11 @@ export const handler = async (
 
     const events = eventsArrays.flat();
 
-    await putEventsToKinesisStream(events, {shouldThrowOnError: true});
+    await putEventsToKinesisStream(events, {shouldThrowOnError: true, shouldScaleOnDemand: true });
 
     if(!pageOfFilesResponse.IsTruncated) {
-      console.log("No more files to process. Re-drive complete 🎉")
-      return null;
+      console.log("No more files to process.")
+      return SCALING_DOWN_KINESIS;
     }
 
     const nextMarker = pageOfFilesResponse.NextMarker || pageOfFiles[pageOfFiles.length - 1].Key!;

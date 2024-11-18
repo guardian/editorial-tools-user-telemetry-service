@@ -113,8 +113,10 @@ export const convertNDJSONToEvents = (json: string) => {
   return events;
 };
 
-const fiveMegabyteInBytes = 5 * 1024 * 1024;
-export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], options?: { shouldThrowOnError?: boolean }) => {
+const oneMegabyteInBytes = 1024 * 1024;
+const fiveMegabytesInBytes = 5 * oneMegabyteInBytes;
+export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], options?: { shouldThrowOnError?: boolean, shouldScaleOnDemand?: boolean }) => {
+  const mbPerSecondLimit = options?.shouldScaleOnDemand ? await commenceScaleKinesisShardCount("double") : 1;
   const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
     const record = {
       Data: JSON.stringify({
@@ -130,8 +132,7 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], op
     if(!currentChunk){
       return [[record]]
     }
-    // we no longer care about the 1MB/s limit, since we're using ON_DEMAND capacity mode
-    else if(currentChunk.length < 500 && Buffer.byteLength(JSON.stringify(currentChunk) + JSON.stringify(record)) < fiveMegabyteInBytes){
+    else if(currentChunk.length < 500 && Buffer.byteLength(JSON.stringify(currentChunk) + JSON.stringify(record)) < fiveMegabytesInBytes){
       return [...acc.slice(0, -1), [...currentChunk, record]];
     }
     else {
@@ -140,6 +141,7 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], op
   }, [] as PutRecordsRequestEntryList[]);
 
   for (const Records of chunkedRecords) {
+    const chunkStartTime = new Date().getTime();
     const putRecordsResult = await kinesis.putRecords({
       Records,
       StreamName: telemetryStreamName,
@@ -154,6 +156,14 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], op
     }
 
     console.log(`Written ${Records.length} of ${events.length} events to Kinesis`);
+
+    const chunkEndTime = new Date().getTime();
+    const chunkDurationInMillis = chunkEndTime - chunkStartTime;
+    const spacingMillisBasedOnMbPerSecondLimit = 1000 / mbPerSecondLimit;
+
+    if(chunkedRecords.length > 1 && chunkDurationInMillis < spacingMillisBasedOnMbPerSecondLimit){
+      await new Promise(resolve => setTimeout(resolve, spacingMillisBasedOnMbPerSecondLimit - chunkDurationInMillis));
+    }
   }
 };
 
@@ -174,6 +184,49 @@ export const getEventsFromKinesisStream = async () => {
     })
     .promise();
 };
+
+export const commenceScaleKinesisShardCount = async (operation: "double" | "half"): Promise<number> => {
+  const streamStatus = await kinesis.describeStream({ StreamName: telemetryStreamName }).promise()
+    .then(_ => _.StreamDescription.StreamStatus);
+  // if lots of scaling has taken place in the retention period of the stream, there are too may shards returned in the describeStream result, so we need to count shards explicitly
+  const activeShards = await kinesis.listShards({ StreamName: telemetryStreamName, ShardFilter: { Type: "AT_LATEST" }}).promise()
+    .then(_ => _.Shards!.filter(_ => !_.SequenceNumberRange?.EndingSequenceNumber));
+  const currentShardCount = activeShards.length;
+
+  if(streamStatus === "UPDATING"){
+    console.log("Kinesis stream is already updating");
+    return currentShardCount;
+  }
+  else if(operation === "half" && currentShardCount === 1){
+    console.log("Kinesis stream is already at 1 shard");
+    return currentShardCount;
+  }
+  else if(operation === "half"){
+    const desiredShards = Math.ceil(currentShardCount / 2);
+    console.log("Scaling down Kinesis stream to", desiredShards, "shards...");
+    await kinesis.updateShardCount({
+      StreamName: telemetryStreamName,
+      TargetShardCount: desiredShards,
+      ScalingType: "UNIFORM_SCALING",
+    }).promise();
+    return desiredShards; // when scaling down we can return the desired number of shards, so that if we're still sending messages we don't send too many once the reduced shard count kicks in
+  }
+  else if(operation === "double" && currentShardCount >= 32){
+    // we can only reach 32 shards and scale back down in the same 24-hour period, so do nothing
+    console.log("Kinesis stream is already at 32 shards, not scaling up further");
+    return currentShardCount;
+  }
+  else {
+    const desiredShards = currentShardCount * 2;
+    console.log("Scaling up Kinesis stream to", desiredShards, "shards...");
+    await kinesis.updateShardCount({
+      StreamName: telemetryStreamName,
+      TargetShardCount: desiredShards,
+      ScalingType: "UNIFORM_SCALING",
+    }).promise();
+    return currentShardCount; //  return current shard count since it takes a few mins to update, and we don't want to get throttled
+  }
+}
 
 export const getYYYYmmddDate = (date: Date) => date.toISOString().split("T")[0];
 

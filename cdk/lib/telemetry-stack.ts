@@ -313,6 +313,12 @@ export class TelemetryStack extends GuStack {
 
 		telemetryDataBucket.grantRead(reDriveFromS3Lambda);
 		kinesisStream.grantWrite(reDriveFromS3Lambda);
+		kinesisStream.grant(
+			reDriveFromS3Lambda,
+			'kinesis:UpdateShardCount',
+			'kinesis:DescribeStream',
+			'kinesis:ListShards',
+		);
 
 		const lambdaInvokeStep = new LambdaInvoke(
 			this,
