@@ -113,7 +113,7 @@ export const convertNDJSONToEvents = (json: string) => {
   return events;
 };
 
-const oneMegabyteInBytes = 1024 * 1024;
+const fiveMegabyteInBytes = 5 * 1024 * 1024;
 export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) => {
   const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
     const record = {
@@ -130,7 +130,8 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) =>
     if(!currentChunk){
       return [[record]]
     }
-    else if(currentChunk.length < 500 && Buffer.byteLength(JSON.stringify(currentChunk) + JSON.stringify(record)) < oneMegabyteInBytes){
+    // we no longer care about the 1MB/s limit, since we're using ON_DEMAND capacity mode
+    else if(currentChunk.length < 500 && Buffer.byteLength(JSON.stringify(currentChunk) + JSON.stringify(record)) < fiveMegabyteInBytes){
       return [...acc.slice(0, -1), [...currentChunk, record]];
     }
     else {
@@ -139,7 +140,6 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) =>
   }, [] as PutRecordsRequestEntryList[]);
 
   for (const Records of chunkedRecords) {
-    const chunkStartTime = new Date().getTime();
     const putRecordsResult = await kinesis.putRecords({
       Records,
       StreamName: telemetryStreamName,
@@ -151,14 +151,6 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[]) =>
     }
 
     console.log(`Written ${Records.length} of ${events.length} events to Kinesis`);
-
-    const chunkEndTime = new Date().getTime();
-    const chunkDurationInMillis = chunkEndTime - chunkStartTime;
-
-    // max throughput is 1MB per second
-    if(chunkDurationInMillis < 1000 && chunkedRecords.length > 1){
-      await new Promise(resolve => setTimeout(resolve, 1000 - chunkDurationInMillis))
-    }
   }
 };
 
