@@ -42,7 +42,7 @@ export const handler = async (
 
     console.log(`page of files: ${pageOfFiles.length}, starting at ${pageOfFilesResponse.Marker}`);
 
-    const eventsArrays = await Promise.all(pageOfFiles.map(async (file) => {
+    const eventsArrays = await Promise.all(pageOfFiles.map(async (file, index) => {
       const Key = file.Key;
 
       if(!Key) {
@@ -50,9 +50,7 @@ export const handler = async (
         return [];
       }
 
-      const position = pageOfFiles.indexOf(file) + 1;
-
-      console.log(`Attempting to read from file (${position} of ${pageOfFiles.length}) at s3://${telemetryBucketName}/${Key}`);
+      console.log(`Attempting to read from file (${index + 1} of ${pageOfFiles.length}) at s3://${telemetryBucketName}/${Key}`);
 
       const maybeEvents = await getEventsFromS3File(Key);
 
