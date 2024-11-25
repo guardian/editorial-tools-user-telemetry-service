@@ -2,22 +2,37 @@ import { set, flow } from "lodash/fp";
 import { S3Event } from "aws-lambda";
 import { IUserTelemetryEvent } from "../../../definitions/IUserTelemetryEvent";
 
+const event1: IUserTelemetryEvent = {
+  app: "example-app",
+  stage: "PROD",
+  type: "USER_ACTION_1",
+  value: 1,
+  eventTime: "2020-09-03T07:51:27.669Z"
+};
+
+const event2: IUserTelemetryEvent = {
+  app: "example-app",
+  stage: "PROD",
+  type: "USER_ACTION_2",
+  value: 1,
+  eventTime: "2020-09-03T07:51:27.669Z"
+};
+
 export const events: IUserTelemetryEvent[] = [
-  {
-    app: "example-app",
-    stage: "PROD",
-    type: "USER_ACTION_1",
-    value: 1,
-    eventTime: "2020-09-03T07:51:27.669Z"
-  },
-  {
-    app: "example-app",
-    stage: "PROD",
-    type: "USER_ACTION_2",
-    value: 1,
-    eventTime: "2020-09-03T07:51:27.669Z"
-  },
+  event1,
+  event2,
 ];
+
+export const eventsAfterKinesisTransforms: Array<IUserTelemetryEvent & {'@timestamp': string}> = [
+  {
+    "@timestamp": "2020-09-03T07:51:27.669Z",
+    ...event1
+  },
+  {
+    "@timestamp": "2020-09-03T07:51:27.669Z",
+    ...event2
+  }
+]
 
 export const eventsAsNDJSON = `{\"app\":\"example-app\",\"stage\":\"PROD\",\"type\":\"USER_ACTION_1\",\"value\":1,\"eventTime\":\"2020-09-03T07:51:27.669Z\"}
 {\"app\":\"example-app\",\"stage\":\"PROD\",\"type\":\"USER_ACTION_2\",\"value\":1,\"eventTime\":\"2020-09-03T07:51:27.669Z\"}

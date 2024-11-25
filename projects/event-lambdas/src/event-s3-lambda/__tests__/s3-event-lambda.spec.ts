@@ -2,7 +2,7 @@ import { handler } from "../index";
 import {
   getApiGatewayEventForPutEvent,
   eventsAsNDJSON,
-  events,
+  eventsAfterKinesisTransforms,
 } from "../../__tests__/fixtures";
 
 import { s3 } from "../../lib/aws";
@@ -83,6 +83,6 @@ describe("s3 event handler", () => {
       .slice(result.Records.length - 2)
       .map((record) => JSON.parse(record.Data.toString()));
 
-    expect(dataFromStream).toEqual(events);
+    expect(dataFromStream).toEqual(eventsAfterKinesisTransforms);
   });
 });

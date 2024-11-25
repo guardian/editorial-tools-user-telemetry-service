@@ -1,7 +1,7 @@
 import { APIGatewayProxyResult, S3Event } from "aws-lambda";
 
 import { createOkResponse, createErrorResponse } from "../lib/response";
-import { getEventsFromS3File, putEventsToKinesisStream } from "../lib/util";
+import {augmentWithId, getEventsFromS3File, putEventsToKinesisStream} from "../lib/util";
 
 export const handler = async (
   event: S3Event
@@ -31,7 +31,7 @@ export const handler = async (
     };
   }
 
-  await putEventsToKinesisStream(maybeEvents.value);
+  await putEventsToKinesisStream(maybeEvents.value.map(augmentWithId(Key)));
 
   const message = `Written ${maybeEvents.value.length} events to Kinesis`;
   console.log(message);
