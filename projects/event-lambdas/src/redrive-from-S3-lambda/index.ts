@@ -1,7 +1,7 @@
 import {
   getEventsFromS3File,
   putEventsToKinesisStream,
-  commenceScaleKinesisShardCount,
+  commenceScaleKinesisShardCount, augmentWithId,
 } from "../lib/util";
 import {s3} from "../lib/aws";
 import {telemetryBucketName} from "../lib/constants";
@@ -75,7 +75,7 @@ export const handler = async (
         return [];
       }
 
-      return maybeEvents.value;
+      return maybeEvents.value.map(augmentWithId(Key));
     }));
 
     const events = eventsArrays.flat();

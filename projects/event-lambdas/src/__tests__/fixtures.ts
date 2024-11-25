@@ -1,13 +1,14 @@
 import { set, flow } from "lodash/fp";
 import { S3Event } from "aws-lambda";
 import { IUserTelemetryEvent } from "../../../definitions/IUserTelemetryEvent";
+import {IUserTelemetryEventWithId} from "../../../definitions/IUserTelemetryEventWithId";
 
 const event1: IUserTelemetryEvent = {
   app: "example-app",
   stage: "PROD",
   type: "USER_ACTION_1",
   value: 1,
-  eventTime: "2020-09-03T07:51:27.669Z"
+  eventTime: "2020-09-03T07:51:27.669Z",
 };
 
 const event2: IUserTelemetryEvent = {
@@ -23,13 +24,15 @@ export const events: IUserTelemetryEvent[] = [
   event2,
 ];
 
-export const eventsAfterKinesisTransforms: Array<IUserTelemetryEvent & {'@timestamp': string}> = [
+export const eventsAfterKinesisTransforms: Array<IUserTelemetryEventWithId & {'@timestamp': string}> = [
   {
     "@timestamp": "2020-09-03T07:51:27.669Z",
+    id: "example-key-9624bab7e023e0f950aa2a5569dd6e8baa5140e9",
     ...event1
   },
   {
     "@timestamp": "2020-09-03T07:51:27.669Z",
+    id: "example-key-03bc2dc43854921a072c602fdb861fe5d59e2891",
     ...event2
   }
 ]
