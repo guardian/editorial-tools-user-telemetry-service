@@ -1,6 +1,7 @@
 import ndjson from "ndjson";
 import Ajv from "ajv";
 import { v4 as uuidv4 } from "uuid";
+import cyrpto from "crypto";
 
 import eventApiInputSchema from "../schema/eventApiInput.schema.json";
 import { IUserTelemetryEvent } from "../../../definitions/IUserTelemetryEvent";
@@ -8,6 +9,7 @@ import { Either } from "./types";
 import { s3, kinesis } from "./aws";
 import { telemetryBucketName, telemetryStreamName } from "./constants";
 import {PutRecordsRequestEntryList} from "aws-sdk/clients/kinesis";
+import {IUserTelemetryEventWithId} from "../../../definitions/IUserTelemetryEventWithId";
 
 const ajv = new Ajv();
 const validateEventApiInput = ajv.compile(eventApiInputSchema);
@@ -113,9 +115,17 @@ export const convertNDJSONToEvents = (json: string) => {
   return events;
 };
 
+export const augmentWithId = (bucketKey: string) => (event: IUserTelemetryEvent): IUserTelemetryEventWithId => {
+  const eventHash = cyrpto.createHash("sha1").update(JSON.stringify(event)).digest("hex");
+  return {
+    ...event,
+    id: `${bucketKey.substring(bucketKey.lastIndexOf("/") + 1)}-${eventHash}`
+  }
+};
+
 const oneMegabyteInBytes = 1024 * 1024;
 const fiveMegabytesInBytes = 5 * oneMegabyteInBytes;
-export const putEventsToKinesisStream = async (events: IUserTelemetryEvent[], options?: { shouldThrowOnError?: boolean, shouldScaleOnDemand?: boolean }) => {
+export const putEventsToKinesisStream = async (events: IUserTelemetryEventWithId[], options?: { shouldThrowOnError?: boolean, shouldScaleOnDemand?: boolean }) => {
   const mbPerSecondLimit = options?.shouldScaleOnDemand ? await commenceScaleKinesisShardCount("double") : 1;
   const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
     const record = {
