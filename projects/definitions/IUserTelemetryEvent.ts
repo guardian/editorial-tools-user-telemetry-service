@@ -27,6 +27,7 @@ export interface IUserTelemetryEvent {
 
   /**
    * The event metadata – any additional context we'd like to provide.
+   * IMPORTANT: this is re-written to '_tags' on the way to ELK (as 'tags' is reserved field name in logstash v8 onwards)
    */
   tags?: {
     [key: string]: string | number | boolean;
