@@ -78,6 +78,10 @@ jobs:
         working-directory: projects/event-lambdas/dist
         run: zip -r -j event-s3-lambda.zip event-s3-lambda/*
 
+      - name: prepare the redrive-from-S3-lambda zip
+        working-directory: projects/event-lambdas/dist
+        run: zip -r -j redrive-from-S3-lambda.zip redrive-from-S3-lambda/*
+
       - uses: guardian/actions-riff-raff@v2
         with:
           projectName: Editorial Tools::Telemetry Service event lambda
@@ -90,3 +94,5 @@ jobs:
               - projects/event-lambdas/dist/event-api-lambda.zip
             event-s3-lambda:
               - projects/event-lambdas/dist/event-s3-lambda.zip
+            user-telemetry-redrive-from-s3-lambda:
+              - projects/event-lambdas/dist/redrive-from-S3-lambda.zip

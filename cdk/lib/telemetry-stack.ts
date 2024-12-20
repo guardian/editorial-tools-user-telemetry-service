@@ -2,6 +2,7 @@ import { GuStack, GuStringParameter } from '@guardian/cdk/lib/constructs/core';
 import type { GuStackProps } from '@guardian/cdk/lib/constructs/core';
 import { GuCname } from '@guardian/cdk/lib/constructs/dns';
 import { GuRole } from '@guardian/cdk/lib/constructs/iam';
+import { GuLambdaFunction } from '@guardian/cdk/lib/constructs/lambda';
 import type { App } from 'aws-cdk-lib';
 import { CfnOutput, CfnParameter, Duration, Tags } from 'aws-cdk-lib';
 import {
@@ -18,10 +19,18 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import { Stream } from 'aws-cdk-lib/aws-kinesis';
 import type { FunctionProps } from 'aws-cdk-lib/aws-lambda';
-import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Code, Function, LoggingFormat, Runtime } from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
+import {
+	Choice,
+	Condition,
+	DefinitionBody,
+	Pass,
+	StateMachine,
+} from 'aws-cdk-lib/aws-stepfunctions';
+import { LambdaInvoke } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 export class TelemetryStack extends GuStack {
 	constructor(scope: App, id: string, props: GuStackProps) {
@@ -277,6 +286,57 @@ export class TelemetryStack extends GuStack {
 			app: 'user-telemetry-service',
 			resourceRecord: telemetryDomainName.domainNameAliasDomainName,
 			ttl: Duration.seconds(3600),
+		});
+
+		/**
+		 * Re-drive lambda and step-function
+		 */
+
+		const reDriveFromS3Lambda = new GuLambdaFunction(
+			this,
+			'ReDriveFromS3Lambda',
+			{
+				app: `${appName}-redrive-from-s3-lambda`,
+				functionName: `${this.stack}-${this.stage}-${appName}-redrive-from-s3-lambda`,
+				...commonLambdaParams,
+				environment: {
+					...commonLambdaParams.environment,
+					TELEMETRY_STREAM_NAME: kinesisStream.streamName,
+				},
+				memorySize: 1024,
+				timeout: Duration.minutes(15), // maximum allowed by AWS
+				reservedConcurrentExecutions: 1,
+				fileName: 'redrive-from-S3-lambda.zip',
+				loggingFormat: LoggingFormat.TEXT,
+			},
+		);
+
+		telemetryDataBucket.grantRead(reDriveFromS3Lambda);
+		kinesisStream.grantWrite(reDriveFromS3Lambda);
+		kinesisStream.grant(
+			reDriveFromS3Lambda,
+			'kinesis:UpdateShardCount',
+			'kinesis:DescribeStream',
+			'kinesis:ListShards',
+		);
+
+		const lambdaInvokeStep = new LambdaInvoke(
+			this,
+			'ReDriveFromS3StepFunctionLambdaCall',
+			{
+				lambdaFunction: reDriveFromS3Lambda,
+			},
+		);
+
+		new StateMachine(this, 'ReDriveFromS3StepFunction', {
+			stateMachineName: `${this.stack}-${this.stage}-${appName}-redrive-from-s3-step-function`,
+			definitionBody: DefinitionBody.fromChainable(
+				lambdaInvokeStep.next(
+					new Choice(this, 'ReDriveFromS3StepFunctionIsDoneChoice')
+						.when(Condition.isNotNull('$.Payload'), lambdaInvokeStep)
+						.otherwise(new Pass(this, 'ReDriveFromS3StepFunctionIsDone')),
+				),
+			),
 		});
 
 		/**
