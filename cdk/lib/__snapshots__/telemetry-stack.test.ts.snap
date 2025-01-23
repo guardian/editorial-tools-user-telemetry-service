@@ -6,6 +6,8 @@ exports[`The telemetry stack matches the snapshot 1`] = `
     "gu:cdk:constructs": [
       "GuStringParameter",
       "GuRole",
+      "GuStringParameter",
+      "GuRole",
       "GuCname",
       "GuDistributionBucketParameter",
       "GuLambdaFunction",
@@ -74,6 +76,11 @@ exports[`The telemetry stack matches the snapshot 1`] = `
     "PandaSettingsKey": {
       "Description": "The location of the pan-domain authentication settings file",
       "Type": "String",
+    },
+    "edFeedsRoleArn": {
+      "Default": "/CODE/flexible/event-api-lambda/edFeedsRoleArn",
+      "Description": "ARN of editorial-feeds role that assumes the hmacSecretAccessRoleForOphan",
+      "Type": "AWS::SSM::Parameter::Value<String>",
     },
     "ophanRoleArn": {
       "Default": "/CODE/flexible/event-api-lambda/ophanRoleArn",
@@ -1353,6 +1360,67 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "Roles": [
           {
             "Ref": "ReDriveFromS3StepFunctionRole110639E1",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "hmacsecretaccessroleforedfeeds7B381717": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Ref": "edFeedsRoleArn",
+                },
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "RoleName": "hmacSecretAccessRoleForEdFeeds-CODE",
+        "Tags": [
+          {
+            "Key": "gu:cdk:version",
+            "Value": "TEST",
+          },
+          {
+            "Key": "gu:repo",
+            "Value": "guardian/editorial-tools-user-telemetry-service",
+          },
+          {
+            "Key": "Stack",
+            "Value": "flexible",
+          },
+          {
+            "Key": "Stage",
+            "Value": "CODE",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "hmacsecretaccessroleforedfeedsDefaultPolicyCBD00380": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "hmacsecretaccessroleforedfeedsDefaultPolicyCBD00380",
+        "Roles": [
+          {
+            "Ref": "hmacsecretaccessroleforedfeeds7B381717",
           },
         ],
       },

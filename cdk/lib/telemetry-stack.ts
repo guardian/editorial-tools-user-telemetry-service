@@ -82,7 +82,7 @@ export class TelemetryStack extends GuStack {
 				'The HMAC secret key used to authenticate machine clients with the event-api-lambda',
 		});
 
-		const allowOphanAccessToHmac = new PolicyStatement({
+		const allowExternalAccessToHmac = new PolicyStatement({
 			effect: Effect.ALLOW,
 			actions: ['secretsmanager:GetSecretValue'],
 			resources: [hmacSecret.secretArn],
@@ -103,7 +103,24 @@ export class TelemetryStack extends GuStack {
 				assumedBy: new ArnPrincipal(ophanRoleArn),
 			},
 		);
-		hmacSecretRoleForOphan.addToPolicy(allowOphanAccessToHmac);
+		hmacSecretRoleForOphan.addToPolicy(allowExternalAccessToHmac);
+
+		const edFeedsRoleArn = new GuStringParameter(this, 'edFeedsRoleArn', {
+			default: `/${this.stage}/${this.stack}/event-api-lambda/edFeedsRoleArn`,
+			fromSSM: true,
+			description:
+				'ARN of editorial-feeds role that assumes the hmacSecretAccessRoleForOphan',
+		}).valueAsString;
+
+		const hmacSecretRoleForEdFeeds = new GuRole(
+			this,
+			'hmac-secret-access-role-for-ed-feeds',
+			{
+				roleName: `hmacSecretAccessRoleForEdFeeds-${this.stage}`,
+				assumedBy: new ArnPrincipal(edFeedsRoleArn),
+			},
+		);
+		hmacSecretRoleForEdFeeds.addToPolicy(allowExternalAccessToHmac);
 
 		/**
 		 * S3 bucket – where our telemetry data is persisted
