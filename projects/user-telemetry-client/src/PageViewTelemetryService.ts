@@ -20,11 +20,11 @@ const getStoredId = (storage: Storage, key: string): string => {
 };
 
 const getStage = (): string => {
-    const url = window.location.hostname;
-    if (url.includes("local.dev-gutools.co.uk")) { return "LOCAL"; }
-    if (url.includes("test.dev-gutools.co.uk")) { return "TEST"; }
-    if (url.includes("code.dev-gutools.co.uk")) { return "CODE"; }
-    if (url.includes(".gutools.co.uk")) { return "PROD"; }
+    const hostname = new URL(window.location.href).hostname;
+    if (hostname.endsWith("local.dev-gutools.co.uk")) { return "LOCAL"; }
+    if (hostname.endsWith("test.dev-gutools.co.uk")) { return "TEST"; }
+    if (hostname.endsWith("code.dev-gutools.co.uk")) { return "CODE"; }
+    if (hostname.endsWith(".gutools.co.uk")) { return "PROD"; }
     return "";
 };
 
