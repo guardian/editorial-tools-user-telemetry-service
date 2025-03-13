@@ -1,6 +1,6 @@
 import {
   PanDomainAuthentication,
-  AuthenticationStatus,
+  AuthenticationStatus, User,
 } from "@guardian/pan-domain-node";
 import { Request, Response } from "express";
 import { PandaHmacAuthentication } from './panda-hmac'
@@ -54,4 +54,33 @@ export async function authenticated(
       }
     });
   }
+}
+
+export async function authenticatePandaUser(
+    panda: Pick<PanDomainAuthentication,'verify'>,
+    req: Request,
+    res: Response,
+    handler: (user: User) => Promise<void>
+): Promise<void> {
+    // No HMAC authentication headers so assume we need to do regular panda auth
+    const cookie = Array.isArray(req.headers["cookie"])
+        ? req.headers["cookie"][0]
+        : req.headers["cookie"] || "";
+
+    if (!cookie) {
+      const message =
+          "No pan-domain authentication cookie present in the request";
+      applyErrorResponse(res, 403, message);
+      return;
+    }
+
+    return panda.verify(cookie).then(({status, user}) => {
+      if(status === AuthenticationStatus.AUTHORISED && user !== undefined) {
+        return handler(user);
+      }
+      else {
+        applyErrorResponse(res, 403, "Invalid credentials");
+        return;
+      }
+    });
 }
