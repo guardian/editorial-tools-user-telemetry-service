@@ -7,6 +7,7 @@ import { applyErrorResponse, applyOkResponse } from "./util";
 import type { AppConfig } from "./index";
 import {User} from "@guardian/pan-domain-node";
 import {IUserTelemetryEvent} from "../../../definitions/IUserTelemetryEvent";
+import * as url from "url";
 
 export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
@@ -75,8 +76,8 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                 req,
                 res,
                 async ({ email }: User) => {
-
                     const {app, stage} = req.query;
+                    const {hostname, pathname} = url.parse(req.header("referrer") || "");
 
                     if(!email ||
                         !app || typeof app !== "string" ||
@@ -100,6 +101,8 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                             email,
                             stage,
                             app,
+                            ...(hostname && {hostname}),
+                            ...(pathname && {pathname})
                         }
                     }
 
@@ -108,7 +111,7 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                         `Added telemetry tool view event to S3 at key ${fileKey}`
                     );
 
-                    applyOkResponse(res, 201, fileKey.join(","));
+                    applyOkResponse(res, 204, fileKey.join(","));
                 }
             )
     );
