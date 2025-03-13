@@ -2,9 +2,11 @@ import express from "express";
 import { Request, Response } from "express";
 
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
-import { authenticated } from "../lib/authentication";
+import {authenticated, authenticatePandaUser} from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 import type { AppConfig } from "./index";
+import {User} from "@guardian/pan-domain-node";
+import {IUserTelemetryEvent} from "../../../definitions/IUserTelemetryEvent";
 
 export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
@@ -64,6 +66,52 @@ export const createApp = (initConfig: AppConfig): express.Application => {
         }
       )
   );
+
+    app.get(
+        "/tracking-pixel",
+        async (req: Request, res: Response) =>
+            authenticatePandaUser(
+                initConfig.panDomainAuthentication,
+                req,
+                res,
+                async ({ email }: User) => {
+
+                    const {app, stage} = req.query;
+
+                    if(!email ||
+                        !app || typeof app !== "string" ||
+                        !stage || typeof stage !== "string"
+                    ) {
+                        applyErrorResponse(
+                            res,
+                            400,
+                            "Incorrect event format"
+                        );
+                        return;
+                    }
+
+                    const toolView: IUserTelemetryEvent = {
+                        app: "tools-audit",
+                        stage: "INFRA",
+                        type: "GUARDIAN_TOOL_ACCESSED",
+                        value: true,
+                        eventTime: new Date().toISOString(),
+                        tags: {
+                            email,
+                            stage,
+                            app,
+                        }
+                    }
+
+                    const fileKey = await putEventsIntoS3Bucket([toolView]);
+                    console.log(
+                        `Added telemetry tool view event to S3 at key ${fileKey}`
+                    );
+
+                    applyOkResponse(res, 201, fileKey.join(","));
+                }
+            )
+    );
 
   return app;
 };
