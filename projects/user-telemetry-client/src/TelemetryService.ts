@@ -2,31 +2,15 @@ import throttle from 'lodash/throttle';
 import chunk from 'lodash/chunk';
 
 import { IUserTelemetryEvent } from "./";
-import { createHmac } from "crypto";
+import { cookieAuthentication } from "./authentication/AuthCookie";
 
-export function generateHmacHeaders(requestDate: Date, path: string, hmacSecretKey: string): {
-    ["x-gu-tools-hmac-token"]: string,
-    ["x-gu-tools-hmac-date"]: string
-} {
-    const date = requestDate.toUTCString()
-
-    const hmac = createHmac("sha256", hmacSecretKey);
-    const content = date + "\n" + path;
-    hmac.update(content, "utf8");
-
-    const token = "HMAC " + hmac.digest("base64");
-
-    return {
-        ["x-gu-tools-hmac-token"]: token,
-        ["x-gu-tools-hmac-date"]: date
-    }
-}
+export type GuAuthMiddleware = (requestInit: RequestInit) => RequestInit
 
 export class UserTelemetryEventSender {
     private postEventLimit = 500;
     private eventBuffer: IUserTelemetryEvent[] = [];
 
-    public constructor(private telemetryUrl: string, private throttleDelay: number = 10000, private useHmacSecret: false | string = false) {};
+    public constructor(private telemetryUrl: string, private throttleDelay: number = 10000, private authenticators: GuAuthMiddleware[] = [cookieAuthentication]) {};
 
     private async sendEvents(): Promise<void> {
         const [firstChunk, ...subsequentChunks] = chunk(this.eventBuffer, this.postEventLimit);
@@ -50,23 +34,11 @@ export class UserTelemetryEventSender {
             body: jsonEventBuffer
         }
 
-        if(this.useHmacSecret){
-            requestInit = {
-                ...requestInit,
-                headers: new Headers({
-                    "Content-Type": "application/json",
-                    ...generateHmacHeaders(new Date(), path, this.useHmacSecret)
-                })
-            }
-        }
-        else {
-            requestInit = {
-                ...requestInit,
-                credentials: "include"
-            }
-        }
+        const requestInitWithAuthentication = this.authenticators.reduce((acc, curr) => {
+            return curr(acc);
+        }, requestInit);
 
-        const response = await fetch(`${this.telemetryUrl}/event`, requestInit);
+        const response = await fetch(`${this.telemetryUrl}/event`, requestInitWithAuthentication);
 
         if (!response.ok) {
           this.eventBuffer = this.eventBuffer.concat(firstChunk);
