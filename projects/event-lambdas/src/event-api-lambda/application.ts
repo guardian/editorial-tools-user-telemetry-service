@@ -75,13 +75,14 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                 initConfig.panDomainAuthentication,
                 req,
                 res,
-                async ({ email }: User) => {
-                    const {app, stage} = req.query;
-                    const {hostname, pathname} = url.parse(req.header("referrer") || "");
+                async ({email}: User) => {
+                    const {app, stage, path} = req.query;
+                    const referrer = url.parse(req.header("referrer") || "");
 
-                    if(!email ||
+                    if (!email ||
                         !app || typeof app !== "string" ||
-                        !stage || typeof stage !== "string"
+                        !stage || typeof stage !== "string" ||
+                        !path || typeof path !== "string"
                     ) {
                         applyErrorResponse(
                             res,
@@ -91,7 +92,7 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                         return;
                     }
 
-                    const toolView: IUserTelemetryEvent = {
+                    const viewEvent: IUserTelemetryEvent = {
                         app: "tools-audit",
                         stage: "INFRA",
                         type: "GUARDIAN_TOOL_ACCESSED",
@@ -101,12 +102,17 @@ export const createApp = (initConfig: AppConfig): express.Application => {
                             email,
                             stage,
                             app,
-                            ...(hostname && {hostname}),
-                            ...(pathname && {pathname})
+                            path,
+                            ...(referrer.hostname && {
+                                ["referrer-hostname"]: referrer.hostname
+                            }),
+                            ...(referrer.pathname && {
+                                ["referrer-pathname"]: referrer.pathname
+                            })
                         }
                     }
 
-                    const fileKey = await putEventsIntoS3Bucket([toolView]);
+                    const fileKey = await putEventsIntoS3Bucket([viewEvent]);
                     console.log(
                         `Added telemetry tool view event to S3 at key ${fileKey}`
                     );
