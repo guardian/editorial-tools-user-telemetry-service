@@ -10,6 +10,20 @@ export class UserTelemetryEventSender {
     private postEventLimit = 500;
     private eventBuffer: IUserTelemetryEvent[] = [];
 
+    /*
+    * Constructs a User Telemetry Event Sender for sending Telemetry events to a backend on the `/event` path.
+    *
+    * @param {string} telemetryUrl - Backend URL including protocol for the Telemetry service
+    * @param {number} [throttleDelay=10000] - Number of milliseconds to throttle sending events to
+    * @param {GuAuthMiddleware} [authenticators=[cookieAuthentication]] - Middleware which applies any authentication
+    *   to outgoing fetch requests.
+    *
+    *   Provided implementations are `cookieAuthentication` and `hmacAuthentication` (requires an HMAC key).
+    *
+    *   HMAC would be expected to be used on the backend only, to avoid any leaking of keys.
+    *
+    * @returns {UserTelemetryEventSender}
+    */
     public constructor(private telemetryUrl: string, private throttleDelay: number = 10000, private authenticators: GuAuthMiddleware[] = [cookieAuthentication]) {};
 
     private async sendEvents(): Promise<void> {
