@@ -3,7 +3,7 @@ import chai from "chai";
 import chaiHttp from "chai-http";
 import MockDate from "mockdate";
 import { PandaHmacAuthentication } from "../../lib/panda-hmac";
-import { AuthenticationStatus } from "@guardian/pan-domain-node";
+import {AuthenticationStatus, User} from "@guardian/pan-domain-node";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
@@ -18,9 +18,20 @@ chai.should();
 describe("Event API lambda", () => {
   const constantDate = "Tue, 16 May 2023 10:36:38 GMT";
 
+  const fakePerson: User = {
+    authenticatedIn: ["TOOL_A"],
+    authenticatingSystem: "TOOL_A",
+    email: "fake.person@guardian.com",
+    expires: 0,
+    firstName: "fake",
+    lastName: "person",
+    multifactor: false
+
+  }
+
   const panDomainAuthentication = {
     verify: (requestCookies: string) =>
-      Promise.resolve({ status: AuthenticationStatus.AUTHORISED }),
+      Promise.resolve({ status: AuthenticationStatus.AUTHORISED, user: fakePerson }),
   };
 
   beforeAll(async () => {
@@ -313,6 +324,40 @@ describe("Event API lambda", () => {
       // We expect the file to contain our request as NDJSON
       const expectedFileContents = `${JSON.stringify(request[0])}\n`;
       expect(writtenFile.Body?.toString()).toBe(expectedFileContents);
+    });
+  });
+
+  describe("/tracking-pixel", () => {
+    it("should return a 403 without an auth cookie", () => {
+      return chai
+          .request(testApp)
+          .get("/tracking-pixel")
+          .send()
+          .then((res) => {
+            expect(res.status).toBe(403);
+          });
+    });
+
+    it("should return a 400 without all the necessary params", () => {
+      return chai
+          .request(testApp)
+          .get("/tracking-pixel")
+          .set("Cookie", "some_value")
+          .send()
+          .then((res) => {
+            expect(res.status).toBe(400);
+          });
+    });
+
+    it("should return a 200 for valid request", () => {
+      return chai
+          .request(testApp)
+          .get("/tracking-pixel?app=TOOL_A&stage=DEV&path=/content")
+          .set("Cookie", "some_value")
+          .send()
+          .then((res) => {
+            expect(res.status).toBe(204);
+          });
     });
   });
 });
