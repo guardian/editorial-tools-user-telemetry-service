@@ -25,7 +25,7 @@ export function hmacAuthentication(hmacSecretKey: string): GuAuthMiddleware {
             ...requestInit,
             headers: new Headers({
                 "Content-Type": "application/json",
-                ...generateHmacHeaders(new Date(), "path", hmacSecretKey)
+                ...generateHmacHeaders(new Date(), "/event", hmacSecretKey)
             })
         };
     }
