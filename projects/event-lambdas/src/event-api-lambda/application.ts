@@ -68,59 +68,59 @@ export const createApp = (initConfig: AppConfig): express.Application => {
       )
   );
 
-    app.get(
-        "/tracking-pixel",
-        async (req: Request, res: Response) =>
-            authenticatePandaUser(
-                initConfig.panDomainAuthentication,
-                req,
+  app.get("/tracking-pixel",
+    async (req: Request, res: Response) =>
+      authenticatePandaUser(
+        initConfig.panDomainAuthentication,
+        req,
+        res,
+        async ({email}: User) => {
+          const {app, stage, path} = req.query;
+          const referrer = url.parse(req.header("referrer") || "");
+
+          if (!email ||
+              !app || typeof app !== "string" ||
+              !stage || typeof stage !== "string" ||
+              !path || typeof path !== "string"
+          ) {
+            applyErrorResponse(
                 res,
-                async ({email}: User) => {
-                    const {app, stage, path} = req.query;
-                    const referrer = url.parse(req.header("referrer") || "");
+                400,
+                "Incorrect event format"
+            );
+            return;
+            }
 
-                    if (!email ||
-                        !app || typeof app !== "string" ||
-                        !stage || typeof stage !== "string" ||
-                        !path || typeof path !== "string"
-                    ) {
-                        applyErrorResponse(
-                            res,
-                            400,
-                            "Incorrect event format"
-                        );
-                        return;
-                    }
+            const viewEvent: IUserTelemetryEvent = {
+              app: "tools-audit",
+              stage: "INFRA",
+              type: "GUARDIAN_TOOL_ACCESSED",
+              value: true,
+              eventTime: new Date().toISOString(),
+              tags: {
+                email,
+                stage,
+                app,
+                path,
+                ...(referrer.hostname && {
+                    ["referrer-hostname"]: referrer.hostname
+                }),
+                ...(referrer.pathname && {
+                    ["referrer-pathname"]: referrer.pathname
+                })
+              }
+            }
 
-                    const viewEvent: IUserTelemetryEvent = {
-                        app: "tools-audit",
-                        stage: "INFRA",
-                        type: "GUARDIAN_TOOL_ACCESSED",
-                        value: true,
-                        eventTime: new Date().toISOString(),
-                        tags: {
-                            email,
-                            stage,
-                            app,
-                            path,
-                            ...(referrer.hostname && {
-                                ["referrer-hostname"]: referrer.hostname
-                            }),
-                            ...(referrer.pathname && {
-                                ["referrer-pathname"]: referrer.pathname
-                            })
-                        }
-                    }
+            const fileKey = await putEventsIntoS3Bucket([viewEvent]);
+            console.log(
+                `Added telemetry tool view event to S3 at key ${fileKey}`
+            );
 
-                    const fileKey = await putEventsIntoS3Bucket([viewEvent]);
-                    console.log(
-                        `Added telemetry tool view event to S3 at key ${fileKey}`
-                    );
-
-                    applyOkResponse(res, 204, fileKey.join(","));
-                }
-            )
-    );
+            res.header("Cache-Control", "no-store")
+            applyOkResponse(res, 204, fileKey.join(","));
+        }
+    )
+  );
 
   return app;
 };
