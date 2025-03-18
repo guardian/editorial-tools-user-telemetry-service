@@ -7,6 +7,12 @@ import { PandaHmacAuthentication } from './panda-hmac'
 import { applyErrorResponse } from "../event-api-lambda/util";
 
 
+function getPandaCookie(req: Request): string {
+  return Array.isArray(req.headers["cookie"])
+      ? req.headers["cookie"][0]
+      : req.headers["cookie"] || "";
+}
+
 export async function authenticated(
   panda: Pick<PanDomainAuthentication,'verify'>,
   hmac: Pick<PandaHmacAuthentication,'verify'>,
@@ -33,9 +39,7 @@ export async function authenticated(
     }
   } else {
     // No HMAC authentication headers so assume we need to do regular panda auth
-    const cookie = Array.isArray(req.headers["cookie"])
-        ? req.headers["cookie"][0]
-        : req.headers["cookie"] || "";
+    const cookie = getPandaCookie(req);
 
     if (!cookie) {
       const message =
@@ -62,10 +66,7 @@ export async function authenticatePandaUser(
     res: Response,
     handler: (user: User) => Promise<void>
 ): Promise<void> {
-    // No HMAC authentication headers so assume we need to do regular panda auth
-    const cookie = Array.isArray(req.headers["cookie"])
-        ? req.headers["cookie"][0]
-        : req.headers["cookie"] || "";
+    const cookie = getPandaCookie(req);
 
     if (!cookie) {
       const message =
