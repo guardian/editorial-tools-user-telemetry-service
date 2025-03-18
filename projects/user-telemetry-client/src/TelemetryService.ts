@@ -23,8 +23,6 @@ export class UserTelemetryEventSender {
         // Push the remaining events back into the buffer
         this.eventBuffer = subsequentChunks.flat();
 
-        const path = `/event`;
-
         let requestInit: RequestInit = {
             method: "POST",
             mode: "cors",
@@ -34,8 +32,8 @@ export class UserTelemetryEventSender {
             body: jsonEventBuffer
         }
 
-        const requestInitWithAuthentication = this.authenticators.reduce((acc, curr) => {
-            return curr(acc);
+        const requestInitWithAuthentication = this.authenticators.reduce((request, middleware) => {
+            return middleware(request);
         }, requestInit);
 
         const response = await fetch(`${this.telemetryUrl}/event`, requestInitWithAuthentication);

@@ -1,8 +1,8 @@
 import fetchMock, {MockCall, MockMatcherFunction} from "fetch-mock";
 
 import {UserTelemetryEventSender} from "../src/TelemetryService";
-import { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
-import {hmacAuthentication} from "../src";
+import {IUserTelemetryEvent} from "../../definitions/IUserTelemetryEvent"
+import {hmacAuthentication} from "../src/authentication/HmacRequest";
 
 const url = "http://endpoint";
 const endpoint = `${url}/event`;
