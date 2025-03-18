@@ -1,7 +1,8 @@
 import fetchMock, {MockCall, MockMatcherFunction} from "fetch-mock";
 
-import {generateHmacHeaders, UserTelemetryEventSender} from "../src/TelemetryService";
+import {UserTelemetryEventSender} from "../src/TelemetryService";
 import { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
+import {hmacAuthentication} from "../src";
 
 const url = "http://endpoint";
 const endpoint = `${url}/event`;
@@ -47,7 +48,7 @@ describe("TelemetryService", () => {
     }, 150);
   });
 
-  it("should send events to a remote service with HMAC headers", done => {
+  it("should send events to a remote service with HMAC headers when a secret is provided", done => {
     const requestMatcher: MockMatcherFunction = (url, request) =>
         url === endpoint &&
         request.headers!! &&
@@ -62,7 +63,33 @@ describe("TelemetryService", () => {
         }
     );
 
-    const hmacTelemetryService = new UserTelemetryEventSender(url, 100, "SECRET");
+    const hmacTelemetryService = new UserTelemetryEventSender(url, 100, [hmacAuthentication("SECRET")]);
+
+    hmacTelemetryService.addEvent(exampleEvent);
+
+    setTimeout(() => {
+      const calls = fetchMock.calls(requestMatcher);
+      expect(calls.length).toBe(1);
+      done();
+    }, 150);
+  });
+
+it("should not send events to a remote service with HMAC headers when a secret is not provided", done => {
+    const requestMatcher: MockMatcherFunction = (url, request) =>
+        url === endpoint &&
+        request.headers!! &&
+        !(request.headers as Headers).has("x-gu-tools-hmac-token") &&
+        !(request.headers as Headers).has("x-gu-tools-hmac-date")
+
+    fetchMock.post(
+        requestMatcher,
+        {
+          body: JSON.stringify([exampleEvent]),
+          status: 201
+        }
+    );
+
+    const hmacTelemetryService = new UserTelemetryEventSender(url, 100);
 
     hmacTelemetryService.addEvent(exampleEvent);
 
@@ -250,14 +277,5 @@ describe("TelemetryService", () => {
       expect(fetchMock.calls(endpoint).length).toBe(2);
       done();
     }, 150);
-  });
-});
-
-describe("generateHmacHeaders", () => {
-  it("should generate hmac headers", () => {
-    const date = new Date("2025-03-06T11:00:00");
-    const headers = generateHmacHeaders(date, "/events", "SECRET");
-    expect(headers["x-gu-tools-hmac-date"]).toBe("Thu, 06 Mar 2025 11:00:00 GMT");
-    expect(headers["x-gu-tools-hmac-token"]).toBe("HMAC NFf9RzMFFA0ux7WpSQPuhSNRWm+yeuf/bSorRoRnZNk=");
   });
 });
