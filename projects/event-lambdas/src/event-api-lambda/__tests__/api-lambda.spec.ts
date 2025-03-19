@@ -327,11 +327,11 @@ describe("Event API lambda", () => {
     });
   });
 
-  describe("/tracking-pixel", () => {
+  describe("/guardian-tool-accessed", () => {
     it("should return a 403 without an auth cookie", () => {
       return chai
           .request(testApp)
-          .get("/tracking-pixel")
+          .get("/guardian-tool-accessed")
           .send()
           .then((res) => {
             expect(res.status).toBe(403);
@@ -341,7 +341,7 @@ describe("Event API lambda", () => {
     it("should return a 400 without all the necessary params", () => {
       return chai
           .request(testApp)
-          .get("/tracking-pixel")
+          .get("/guardian-tool-accessed")
           .set("Cookie", "some_value")
           .send()
           .then((res) => {
@@ -352,7 +352,7 @@ describe("Event API lambda", () => {
     it("should return a 200 for valid request", () => {
       return chai
           .request(testApp)
-          .get("/tracking-pixel?app=TOOL_A&stage=DEV&path=/content")
+          .get("/guardian-tool-accessed?app=TOOL_A&stage=DEV&path=/content")
           .set("Cookie", "some_value")
           .send()
           .then((res) => {

@@ -14,7 +14,7 @@ flowchart LR
         UTP(Tracking pixel)
     end
     UTC--"HTTP POST /event (cookie w/ pan-domain-auth)"-->AG[API Gateway]
-UTP--"HTTP GET /tracking-pixel?app=[app]&stage=[stage]&path=[path]"-->AG
+UTP--"HTTP GET /guardian-tool-accessed?app=[app]&stage=[stage]&path=[path]"-->AG
 SRV[Server]--"HTTP POST /event (headers w/ hmac auth)"-->AG
 subgraph "AWS (composer)"
 AG-->EAL[event-api-lambda]
@@ -52,20 +52,20 @@ await telemetryService.flushEvents();
 
 ### Tracking Pixel
 
-Alternatively, basic visits to a page can be identified using the `/tracking-pixel` endpoint. This can be requested
+Alternatively, basic visits to a page can be identified using the `/guardian-tool-accessed` endpoint. This can be requested
 either via a script or an HTML img element.
 
 Script:
 
 ```JavaScript
 const image = new Image();
-image.src = "https://[telemetry-backend-domain]/tracking-pixel?app=[app]&stage=[stage]&path=[path]";
+image.src = "https://[telemetry-backend-domain]/guardian-tool-accessed?app=[app]&stage=[stage]&path=[path]";
 ```
 
 Image Tag:
 
 ```HTML
-<img height=0 width=0 src="https://[telemetry-backend-domain]/tracking-pixel?app=[app]&stage=[stage]&path=[path]">
+<img height=0 width=0 src="https://[telemetry-backend-domain]/guardian-tool-accessed?app=[app]&stage=[stage]&path=[path]">
 ```
 
 
