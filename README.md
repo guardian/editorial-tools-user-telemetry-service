@@ -11,8 +11,10 @@ requests from clients, and [hmac](https://github.com/guardian/hmac-headers) to a
 flowchart LR
     subgraph "Client (Browser)"
         UTC[user-telemetry-client]
+        UTP(Tracking pixel)
     end
     UTC--"HTTP POST /event (cookie w/ pan-domain-auth)"-->AG[API Gateway]
+UTP--"HTTP GET /tracking-pixel?app=[app]&stage=[stage]&path=[path]"-->AG
 SRV[Server]--"HTTP POST /event (headers w/ hmac auth)"-->AG
 subgraph "AWS (composer)"
 AG-->EAL[event-api-lambda]
