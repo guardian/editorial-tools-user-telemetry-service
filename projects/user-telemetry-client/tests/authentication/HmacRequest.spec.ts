@@ -1,4 +1,4 @@
-import {generateHmacHeaders} from "../../src/authentication/HmacRequest";
+import {generateHmacHeaders} from "../../src/authentication/node/HmacRequest";
 
 describe("generateHmacHeaders", () => {
     it("should generate hmac headers values", () => {

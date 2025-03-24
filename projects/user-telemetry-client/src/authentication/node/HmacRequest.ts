@@ -1,5 +1,5 @@
 import {createHmac} from "crypto";
-import {GuAuthMiddleware} from "../TelemetryService";
+import {GuAuthMiddleware} from "../../TelemetryService";
 
 export function generateHmacHeaders(requestDate: Date, path: string, hmacSecretKey: string): {
     ["x-gu-tools-hmac-token"]: string,
