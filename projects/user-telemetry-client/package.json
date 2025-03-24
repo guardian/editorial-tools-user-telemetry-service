@@ -1,7 +1,12 @@
 {
   "name": "@guardian/user-telemetry-client",
   "version": "1.0.1",
-  "main": "dist/user-telemetry-client/src/index.js",
+  "main": "./dist/cjs/user-telemetry-client/src/index.js",
+  "exports": {
+    "types": "./dist/declaration/user-telemetry-client/src/index.d.ts",
+    "require": "./dist/cjs/user-telemetry-client/src/index.js",
+    "import": "./dist/esm/user-telemetry-client/src/index.js"
+  },
   "types": "dist/declaration/user-telemetry-client/src/index.d.ts",
   "license": "MIT",
   "publishConfig": {
@@ -13,7 +18,7 @@
   },
   "scripts": {
     "test": "jest --env=jsdom",
-    "build": "tsc --project tsconfig-build.json",
+    "build": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
     "release": "semantic-release"
   },
   "devDependencies": {
