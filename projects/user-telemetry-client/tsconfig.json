@@ -1,16 +1,17 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
-    "module": "commonjs",
+    "target": "ES2020",
+    "module": "ES2020",
+    "moduleResolution": "node",
     "lib": ["ES2019","DOM"],
-    "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "declarationDir": "dist/declaration",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-  }
+  },
+  "exclude": [
+    "./dist/**/*"
+  ]
 }
