@@ -20,7 +20,8 @@ export class UserTelemetryEventSender {
     *
     *   Provided implementations are `cookieAuthentication` and `hmacAuthentication` (requires an HMAC key).
     *
-    *   HMAC would be expected to be used on the backend only, to avoid any leaking of keys.
+    *   HMAC is only available in Node environments and is intended to be used on the backend only, to avoid any leaking of keys.
+    *   The Middleware can be found under `@guardian/user-telemetry-client/authentication/node`.
     *
     * @returns {UserTelemetryEventSender}
     */
