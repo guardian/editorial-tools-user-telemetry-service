@@ -425,7 +425,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "FunctionName": "event-api-lambda-CODE",
         "Handler": "index.handler",
         "MemorySize": 128,
-        "ReservedConcurrentExecutions": 15,
+        "ReservedConcurrentExecutions": 5,
         "Role": {
           "Fn::GetAtt": [
             "EventApiLambdaServiceRole3695319B",
@@ -455,7 +455,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             "Value": "CODE",
           },
         ],
-        "Timeout": 5,
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -698,7 +698,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "FunctionName": "event-s3-lambda-CODE",
         "Handler": "index.handler",
         "MemorySize": 128,
-        "ReservedConcurrentExecutions": 15,
+        "ReservedConcurrentExecutions": 5,
         "Role": {
           "Fn::GetAtt": [
             "EventS3LambdaServiceRole34104ADE",
@@ -728,7 +728,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             "Value": "CODE",
           },
         ],
-        "Timeout": 5,
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
