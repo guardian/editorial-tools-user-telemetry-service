@@ -1,2 +1,2 @@
 export { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
-export { UserTelemetryEventSender } from "./TelemetryService"
+export { UserTelemetryEventSender, GuAuthMiddleware } from "./TelemetryService"

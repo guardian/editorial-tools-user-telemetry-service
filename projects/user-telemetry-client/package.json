@@ -2,12 +2,19 @@
   "name": "@guardian/user-telemetry-client",
   "version": "1.0.1",
   "main": "./dist/cjs/user-telemetry-client/src/index.js",
-  "exports": {
-    "types": "./dist/declaration/user-telemetry-client/src/index.d.ts",
-    "require": "./dist/cjs/user-telemetry-client/src/index.js",
-    "import": "./dist/esm/user-telemetry-client/src/index.js"
-  },
   "types": "dist/declaration/user-telemetry-client/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/declaration/user-telemetry-client/src/index.d.ts",
+      "require": "./dist/cjs/user-telemetry-client/src/index.js",
+      "import": "./dist/esm/user-telemetry-client/src/index.js"
+    },
+    "./authentication/node": {
+      "types": "./dist/declaration/user-telemetry-client/src/authentication/node/index.d.ts",
+      "require": "./dist/cjs/user-telemetry-client/src/authentication/node/index.js",
+      "import": "./dist/esm/user-telemetry-client/src/authentication/node/index.js"
+    }
+  },
   "license": "MIT",
   "publishConfig": {
     "access": "public"

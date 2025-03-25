@@ -1,7 +1,8 @@
-import fetchMock, { MockCall } from "fetch-mock";
+import fetchMock, {MockCall, MockMatcherFunction} from "fetch-mock";
 
-import { UserTelemetryEventSender } from "../src/TelemetryService";
-import { IUserTelemetryEvent } from "../../definitions/IUserTelemetryEvent"
+import {UserTelemetryEventSender} from "../src/TelemetryService";
+import {IUserTelemetryEvent} from "../../definitions/IUserTelemetryEvent"
+import {hmacAuthentication} from "../src/authentication/node/HmacRequest";
 
 const url = "http://endpoint";
 const endpoint = `${url}/event`;
@@ -42,6 +43,58 @@ describe("TelemetryService", () => {
 
     setTimeout(() => {
       const calls = fetchMock.calls(endpoint);
+      expect(calls.length).toBe(1);
+      done();
+    }, 150);
+  });
+
+  it("should send events to a remote service with HMAC headers when a secret is provided", done => {
+    const requestMatcher: MockMatcherFunction = (url, request) =>
+        url === endpoint &&
+        request.headers!! &&
+        (request.headers as Headers).has("x-gu-tools-hmac-token") &&
+        (request.headers as Headers).has("x-gu-tools-hmac-date")
+
+    fetchMock.post(
+        requestMatcher,
+        {
+          body: JSON.stringify([exampleEvent]),
+          status: 201
+        }
+    );
+
+    const hmacTelemetryService = new UserTelemetryEventSender(url, 100, [hmacAuthentication("SECRET")]);
+
+    hmacTelemetryService.addEvent(exampleEvent);
+
+    setTimeout(() => {
+      const calls = fetchMock.calls(requestMatcher);
+      expect(calls.length).toBe(1);
+      done();
+    }, 150);
+  });
+
+it("should not send events to a remote service with HMAC headers when a secret is not provided", done => {
+    const requestMatcher: MockMatcherFunction = (url, request) =>
+        url === endpoint &&
+        request.headers!! &&
+        !(request.headers as Headers).has("x-gu-tools-hmac-token") &&
+        !(request.headers as Headers).has("x-gu-tools-hmac-date")
+
+    fetchMock.post(
+        requestMatcher,
+        {
+          body: JSON.stringify([exampleEvent]),
+          status: 201
+        }
+    );
+
+    const hmacTelemetryService = new UserTelemetryEventSender(url, 100);
+
+    hmacTelemetryService.addEvent(exampleEvent);
+
+    setTimeout(() => {
+      const calls = fetchMock.calls(requestMatcher);
       expect(calls.length).toBe(1);
       done();
     }, 150);
