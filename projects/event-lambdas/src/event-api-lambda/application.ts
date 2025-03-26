@@ -91,33 +91,16 @@ export const createApp = (initConfig: AppConfig): express.Application => {
             return;
           }
 
-          const viewEvent: IUserTelemetryEvent = {
-            app: "tools-audit",
-            stage: "INFRA",
-            type: "GUARDIAN_TOOL_ACCESSED",
-            value: true,
-            eventTime: new Date().toISOString(),
-            tags: {
-              email,
-              stage,
-              app,
-              path,
-              ...(referrer.hostname && {
-                  ["referrer-hostname"]: referrer.hostname
-              }),
-              ...(referrer.pathname && {
-                  ["referrer-pathname"]: referrer.pathname
-              })
-            }
-          }
-
-          const fileKey = await putEventsIntoS3Bucket([viewEvent]);
-          console.log(
-              `Added telemetry tool view event to S3 at key ${fileKey}`
-          );
+          const logJson = JSON.stringify({
+              message: "Guardian tool accessed",
+              hostname: referrer.hostname,
+              pathname: path,
+              userEmail: email
+          });
+          console.log(logJson);
 
           res.header("Cache-Control", "no-store")
-          applyOkResponse(res, 204, fileKey.join(","));
+          applyOkResponse(res, 204, "");
         }
     )
   );
