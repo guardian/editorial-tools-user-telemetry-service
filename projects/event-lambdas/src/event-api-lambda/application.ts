@@ -2,9 +2,12 @@ import express from "express";
 import { Request, Response } from "express";
 
 import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
-import { authenticated } from "../lib/authentication";
+import {authenticated, authenticatePandaUser} from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 import type { AppConfig } from "./index";
+import {User} from "@guardian/pan-domain-node";
+import {IUserTelemetryEvent} from "../../../definitions/IUserTelemetryEvent";
+import * as url from "url";
 
 export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
@@ -63,6 +66,43 @@ export const createApp = (initConfig: AppConfig): express.Application => {
           applyOkResponse(res, 201, fileKey.join(","));
         }
       )
+  );
+
+  app.get("/guardian-tool-accessed",
+    async (req: Request, res: Response) =>
+      authenticatePandaUser(
+        initConfig.panDomainAuthentication,
+        req,
+        res,
+        async ({email}: User) => {
+          const {app, stage, path} = req.query;
+          const referrer = url.parse(req.header("referrer") || "");
+
+          if (!email ||
+              !app || typeof app !== "string" ||
+              !stage || typeof stage !== "string" ||
+              !path || typeof path !== "string"
+          ) {
+            applyErrorResponse(
+                res,
+                400,
+                "Incorrect event format"
+            );
+            return;
+          }
+
+          const logJson = JSON.stringify({
+              message: "Guardian tool accessed",
+              hostname: referrer.hostname,
+              pathname: path,
+              userEmail: email
+          });
+          console.log(logJson);
+
+          res.header("Cache-Control", "no-store")
+          applyOkResponse(res, 204, "");
+        }
+    )
   );
 
   return app;
