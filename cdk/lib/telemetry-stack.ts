@@ -126,7 +126,7 @@ export class TelemetryStack extends GuStack {
 		const commonLambdaParams: Omit<FunctionProps, 'code'> = {
 			runtime: Runtime.NODEJS_20_X,
 			memorySize: 128,
-			timeout: Duration.seconds(5),
+			timeout: Duration.seconds(10),
 			handler: 'index.handler',
 			environment: {
 				STAGE: this.stage,
@@ -137,7 +137,7 @@ export class TelemetryStack extends GuStack {
 				TELEMETRY_BUCKET_NAME: telemetryDataBucket.bucketName,
 				HMAC_SECRET_LOCATION: hmacSecret.secretName,
 			},
-			reservedConcurrentExecutions: 15,
+			reservedConcurrentExecutions: this.stage === 'PROD' ? 25 : 5,
 		};
 
 		/**
