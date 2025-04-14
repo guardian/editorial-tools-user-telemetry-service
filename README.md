@@ -29,6 +29,15 @@ end
 
 ## Sending tracking events
 
+### Data privacy
+
+The storage, retention and usage of tracked user data is determined by the Guardian's privacy policies. These 
+document should be considered the source of truth for any data privacy questions. Especially relevant, given tracking is
+intended for internal tools, is the "Employee privacy policy" and the "Use of Cookies and Usage Insights" section. 
+These policies can be accessed by Guardian employees via Spike.
+
+**If there are any doubts about a particular use-case, always consult the Data Protection Officer (DPO).**
+
 ### User Telemetry Client
 
 Events are intended to be sent via the [User Telemetry Client package](./projects/user-telemetry-client), using
@@ -68,21 +77,22 @@ Image Tag:
 <img height=0 width=0 src="https://[telemetry-backend-domain]/guardian-tool-accessed?app=[app]&stage=[stage]&path=[path]">
 ```
 
+## Development
 
-## Creating the stack
+### Creating the stack
 
 In `/cdk`, run `npm i` to install dependencies, and `npm run synth` to generate cloudformation for the stack.
 
-## Deploying the stack
+### Deploying the stack
 
 To release changes, deploy the `editorial-tools-user-telemetry-service` project in Riffraff.
 
-## Creating and deploying the package
+### Creating and deploying the package
 
 Deploying the package should be handled automatically when changes are made to the user-telemetry-client subproject. The
 merge commit for the PR should use the [conventional commits syntax](https://www.conventionalcommits.org/en/v1.0.0/).
 
-## Rotating the HMAC key used by machine clients
+### Rotating the HMAC key used by machine clients
 
 The API allows users to authenticate using a HMAC header compatible with
 [guardian/panda-hmac](https://github.com/guardian/panda-hmac). It uses a
