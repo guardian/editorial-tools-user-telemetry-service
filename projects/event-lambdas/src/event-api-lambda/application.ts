@@ -8,6 +8,7 @@ import type { AppConfig } from "./index";
 import {User} from "@guardian/pan-domain-node";
 import {IUserTelemetryEvent} from "../../../definitions/IUserTelemetryEvent";
 import * as url from "url";
+import {app as lambdaApp, stage as lambdaStage} from "../lib/constants"
 
 export const createApp = (initConfig: AppConfig): express.Application => {
   const app = express();
@@ -100,8 +101,8 @@ export const createApp = (initConfig: AppConfig): express.Application => {
           console.log(logJson);
 
           const viewEvent: IUserTelemetryEvent = {
-            app: "tools-audit",
-            stage: "INFRA",
+            app: lambdaApp,
+            stage: lambdaStage,
             type: "GUARDIAN_TOOL_ACCESSED",
             value: true,
             eventTime: new Date().toISOString(),
