@@ -32,7 +32,7 @@ end
 ### Data privacy
 
 The storage, retention and usage of tracked user data is determined by the Guardian's privacy policies. These 
-document should be considered the source of truth for any data privacy questions. Especially relevant, given tracking is
+documents should be considered the source of truth for any data privacy questions. Especially relevant, given tracking is
 intended for internal tools, is the "Employee privacy policy" and the "Use of Cookies and Usage Insights" section. 
 These policies can be accessed by Guardian employees via Spike.
 
