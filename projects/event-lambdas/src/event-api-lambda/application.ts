@@ -104,7 +104,7 @@ export const createApp = (initConfig: AppConfig): express.Application => {
             app: lambdaApp,
             stage: lambdaStage,
             type: "GUARDIAN_TOOL_ACCESSED",
-            value: true,
+            value: 1,
             eventTime: new Date().toISOString(),
             tags: {
               email,
