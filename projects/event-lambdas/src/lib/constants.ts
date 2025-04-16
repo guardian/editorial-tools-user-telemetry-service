@@ -8,3 +8,7 @@ export const hmacSecretLocation =
   process.env.HMAC_SECRET_LOCATION ||
   "/DEV/flexible/user-telemetry-service/hmacSecret";
 export const hmacAllowedDateOffsetInMillis = 300000;
+export const app =
+    process.env.APP || "user-telemetry";
+export const stage =
+    process.env.STAGE || "DEV";
