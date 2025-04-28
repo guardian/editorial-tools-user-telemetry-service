@@ -14,6 +14,24 @@ import {IUserTelemetryEventWithId} from "../../../definitions/IUserTelemetryEven
 const ajv = new Ajv();
 const validateEventApiInput = ajv.compile(eventApiInputSchema);
 
+/**
+ * Determines the stage (environment) from a hostname
+ * @param hostname The hostname to extract stage from
+ * @returns The extracted stage (uppercase) or null if stage cannot be determined
+ */
+export const determineStageFromHostname = (hostname: string): string | undefined => {
+  if (!hostname) {
+    return undefined;
+  }
+  
+  const stageMatch = /^.*\.(?<environment>local|code)\.dev-gutools\.co\.uk$|^.*\.gutools\.co\.uk$/.exec(hostname);
+  if (stageMatch) {
+    return (stageMatch.groups?.environment || "PROD").toUpperCase();
+  }
+  
+  return undefined;
+};
+
 export const parseEventJson = (
   maybeEventJson: unknown
 ): Either<IUserTelemetryEvent[], Ajv.ErrorObject[]> => {
