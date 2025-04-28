@@ -101,7 +101,8 @@ export const createApp = (initConfig: AppConfig): express.Application => {
               message: "Guardian tool accessed",
               hostname: referrer.hostname,
               pathname: path,
-              userEmail: email
+              userEmail: email,
+              referrerStage: stage
           });
           console.log(logJson);
 

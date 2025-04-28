@@ -17,7 +17,7 @@ const validateEventApiInput = ajv.compile(eventApiInputSchema);
 /**
  * Determines the stage (environment) from a hostname
  * @param hostname The hostname to extract stage from
- * @returns The extracted stage (uppercase) or null if stage cannot be determined
+ * @returns The extracted stage (uppercase) or undefined if stage cannot be determined
  */
 export const determineStageFromHostname = (hostname: string): string | undefined => {
   if (!hostname) {

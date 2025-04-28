@@ -16,11 +16,11 @@ jest.mock("uuid", () => ({
 
 describe("utils", () => {
   describe("determineStageFromHostname", () => {
-    it("returns null for empty hostname", () => {
-      expect(determineStageFromHostname("")).toBeNull();
+    it("returns undefined for empty hostname", () => {
+      expect(determineStageFromHostname("")).toBeUndefined();
     });
 
-    it("returns null for non-Guardian hostnames", () => {
+    it("returns undefined for non-Guardian hostnames", () => {
       expect(determineStageFromHostname("example.com")).toBeUndefined();
       expect(determineStageFromHostname("invalid-domain.co.uk")).toBeUndefined();
       expect(determineStageFromHostname("something.gutools.com")).toBeUndefined();
