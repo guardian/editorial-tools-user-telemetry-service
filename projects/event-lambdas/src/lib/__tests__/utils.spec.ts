@@ -3,6 +3,7 @@ import {
   convertEventsToNDJSON,
   convertNDJSONToEvents,
   putEventsIntoS3Bucket,
+  determineStageFromHostname,
 } from "../util";
 import { events, eventsAsNDJSON } from "../../__tests__/fixtures";
 import MockDate from "mockdate";
@@ -14,6 +15,36 @@ jest.mock("uuid", () => ({
 }));
 
 describe("utils", () => {
+  describe("determineStageFromHostname", () => {
+    it("returns undefined for empty hostname", () => {
+      expect(determineStageFromHostname("")).toBeUndefined();
+    });
+
+    it("returns undefined for non-Guardian hostnames", () => {
+      expect(determineStageFromHostname("example.com")).toBeUndefined();
+      expect(determineStageFromHostname("invalid-domain.co.uk")).toBeUndefined();
+      expect(determineStageFromHostname("something.gutools.com")).toBeUndefined();
+    });
+
+    it("returns PROD for .gutools.co.uk domains", () => {
+      expect(determineStageFromHostname("workflow.gutools.co.uk")).toBe("PROD");
+      expect(determineStageFromHostname("media-service.gutools.co.uk")).toBe("PROD");
+      expect(determineStageFromHostname("user-telemetry.gutools.co.uk")).toBe("PROD");
+    });
+
+    it("returns CODE for .code.dev-gutools.co.uk domains", () => {
+      expect(determineStageFromHostname("workflow.code.dev-gutools.co.uk")).toBe("CODE");
+      expect(determineStageFromHostname("grid.code.dev-gutools.co.uk")).toBe("CODE");
+      expect(determineStageFromHostname("user-telemetry.code.dev-gutools.co.uk")).toBe("CODE");
+    });
+
+    it("returns LOCAL for .local.dev-gutools.co.uk domains", () => {
+      expect(determineStageFromHostname("workflow.local.dev-gutools.co.uk")).toBe("LOCAL");
+      expect(determineStageFromHostname("composer.local.dev-gutools.co.uk")).toBe("LOCAL");
+      expect(determineStageFromHostname("user-telemetry.local.dev-gutools.co.uk")).toBe("LOCAL");
+    });
+  });
+
   describe("NDJSON conversion", () => {
     describe("convertEventsToNDJSON", () => {
       it("should convert an array of event data to a single NDJSON string", () => {

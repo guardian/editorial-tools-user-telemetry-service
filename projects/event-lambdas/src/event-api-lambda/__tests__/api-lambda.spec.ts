@@ -359,5 +359,28 @@ describe("Event API lambda", () => {
             expect(res.status).toBe(204);
           });
     });
+    
+    it("should determine stage from hostname when not provided", () => {
+      return chai
+          .request(testApp)
+          .get("/guardian-tool-accessed?app=TOOL_A&path=/content")
+          .set("Cookie", "some_value")
+          .set("Referer", "https://example.code.dev-gutools.co.uk/path")
+          .send()
+          .then((res) => {
+            expect(res.status).toBe(204);
+          });
+    });
+    
+    it("should reject the request if stage can't be determined from either params or referer", () => {
+      return chai
+          .request(testApp)
+          .get("/guardian-tool-accessed?app=TOOL_A&path=/content")
+          .set("Cookie", "some_value")
+          .send()
+          .then((res) => {
+            expect(res.status).toBe(400);
+          });
+    });
   });
 });

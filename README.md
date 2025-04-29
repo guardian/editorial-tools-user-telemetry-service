@@ -77,6 +77,9 @@ Image Tag:
 <img height=0 width=0 src="https://[telemetry-backend-domain]/guardian-tool-accessed?app=[app]&stage=[stage]&path=[path]">
 ```
 
+> [!NOTE]
+> If no stage value is provided, the stage will be determined from the referrer header based on Guardian domain conventions.
+
 ## Development
 
 ### Creating the stack

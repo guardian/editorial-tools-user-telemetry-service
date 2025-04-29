@@ -1,7 +1,7 @@
 import express from "express";
 import { Request, Response } from "express";
 
-import { putEventsIntoS3Bucket, parseEventJson } from "../lib/util";
+import { putEventsIntoS3Bucket, parseEventJson, determineStageFromHostname } from "../lib/util";
 import {authenticated, authenticatePandaUser} from "../lib/authentication";
 import { applyErrorResponse, applyOkResponse } from "./util";
 import type { AppConfig } from "./index";
@@ -76,8 +76,13 @@ export const createApp = (initConfig: AppConfig): express.Application => {
         req,
         res,
         async ({email}: User) => {
-          const {app, stage, path} = req.query;
+          const {app, path} = req.query;
+          let {stage} = req.query;
           const referrer = url.parse(req.header("referrer") || "");
+          
+          if ((!stage || typeof stage !== "string") && referrer.hostname) {
+            stage = determineStageFromHostname(referrer.hostname);
+          }
 
           if (!email ||
               !app || typeof app !== "string" ||
@@ -96,7 +101,8 @@ export const createApp = (initConfig: AppConfig): express.Application => {
               message: "Guardian tool accessed",
               hostname: referrer.hostname,
               pathname: path,
-              userEmail: email
+              userEmail: email,
+              referrerStage: stage
           });
           console.log(logJson);
 
