@@ -51,14 +51,19 @@ async function initialise(): Promise<AppConfig> {
 }
 
 const appConfig = initialise();
+const server =
+    appConfig.then((config) => awsServerlessExpress.createServer(createApp(config)))
+        .catch((error) => {
+              console.error("Failed to initialise server", error);
+              throw error;
+            }
+        );
 
 export const handler: Handler = async (event, context) => {
   console.log("Lambda handler called, processing request.");
 
-  const app = createApp(await appConfig);
-
   return await awsServerlessExpress.proxy(
-    awsServerlessExpress.createServer(app),
+    await server,
     event,
     context,
     "PROMISE"
