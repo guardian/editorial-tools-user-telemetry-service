@@ -48,10 +48,24 @@ export async function authenticated(
       return;
     }
 
-    return panda.verify(cookie).then(({status}) => {
+    return panda.verify(cookie).then(({ status, user }) => {
       switch (status) {
         case AuthenticationStatus.AUTHORISED:
           return handler();
+
+        case AuthenticationStatus.EXPIRED:
+          if (user?.expires) {
+            const expiry = new Date(user.expires);
+            const endOfGracePeriod = new Date();
+            endOfGracePeriod.setHours(endOfGracePeriod.getHours() + 24);
+            if (expiry < endOfGracePeriod) {
+              return handler();
+            } else {
+              applyErrorResponse(res, 419, "Credentials have expired");
+              return;
+            }
+          }
+          // otherwise, fall through to 403
         default:
           applyErrorResponse(res, 403, "Invalid credentials");
           return;
