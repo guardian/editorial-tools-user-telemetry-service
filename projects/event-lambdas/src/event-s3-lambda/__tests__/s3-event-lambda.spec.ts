@@ -24,7 +24,7 @@ describe("s3 event handler", () => {
   beforeAll(async () => {
     try {
       await s3.listObjects({ Bucket: telemetryBucketName }).promise();
-    } catch (e) {
+    } catch (e: any) {
       throw new Error(
         `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
       );
@@ -44,7 +44,10 @@ describe("s3 event handler", () => {
   });
 
   it("should read s3 files from the given event, and reject them if they're malformed", async () => {
-    const keys = await putEventsIntoS3Bucket([{ object: "is-invalid" }] as any, "example-key");
+    const keys = await putEventsIntoS3Bucket(
+      [{ object: "is-invalid" }] as any,
+      "example-key"
+    );
 
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, keys[0]);
     const lambdaResponse = await handler(event);
@@ -78,10 +81,9 @@ describe("s3 event handler", () => {
 
     // The written data should be available on the stream as the last two records in JSON
     const result = await getEventsFromKinesisStream();
-    const dataFromStream = result
-      .Records
-      .slice(result.Records.length - 2)
-      .map((record) => JSON.parse(record.Data.toString()));
+    const dataFromStream = result.Records.slice(result.Records.length - 2).map(
+      (record) => JSON.parse(record.Data.toString())
+    );
 
     expect(dataFromStream).toEqual(eventsAfterKinesisTransforms);
   });
