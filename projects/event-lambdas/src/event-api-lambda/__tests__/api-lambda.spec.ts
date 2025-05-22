@@ -37,7 +37,7 @@ describe("Event API lambda", () => {
   beforeAll(async () => {
     try {
       await s3.listObjects({ Bucket: telemetryBucketName }).promise();
-    } catch (e) {
+    } catch (e: any) {
       throw new Error(
         `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
       );
