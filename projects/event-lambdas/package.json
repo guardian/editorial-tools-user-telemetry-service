@@ -38,7 +38,7 @@
     "ajv": "^6.12.4",
     "aws-sdk": "^2.745.0",
     "aws-serverless-express": "^3.3.6",
-    "express": "^4.17.1",
+    "express": "^4.21.2",
     "lodash": "^4.17.20",
     "ndjson": "^2.0.0",
     "typescript-json-schema": "^0.43.0",
