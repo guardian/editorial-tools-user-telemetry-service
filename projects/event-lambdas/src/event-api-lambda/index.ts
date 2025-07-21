@@ -30,7 +30,8 @@ async function initialise(): Promise<AppConfig> {
     (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
     [] as string[]
   );
-
+  const LOCAL_PROFILE = 'workflow';
+  const { fromIni, fromNodeProviderChain } = require('@aws-sdk/credential-providers');
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
     hmacSecrets
@@ -41,7 +42,8 @@ async function initialise(): Promise<AppConfig> {
     "eu-west-1", // AWS region
     "pan-domain-auth-settings", // Settings bucket
     pandaSettingsKey, // Settings file
-    guardianValidation
+    guardianValidation,
+    isRunningLocally ? fromIni({ profile: LOCAL_PROFILE }):  fromNodeProviderChain(),
   );
 
   return {

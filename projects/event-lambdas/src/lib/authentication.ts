@@ -1,6 +1,7 @@
 import {
+  AuthenticationResult,
   PanDomainAuthentication,
-  AuthenticationStatus, User,
+  User,
 } from "@guardian/pan-domain-node";
 import { Request, Response } from "express";
 import { PandaHmacAuthentication } from './panda-hmac'
@@ -48,20 +49,22 @@ export async function authenticated(
       return;
     }
 
-    return panda.verify(cookie).then(({status}) => {
-      switch (status) {
-        case AuthenticationStatus.AUTHORISED:
-          return handler();
-        default:
-          applyErrorResponse(res, 403, "Invalid credentials");
-          return;
+    return panda.verify(cookie).then((result: AuthenticationResult) => {
+      if (result.success) {
+        console.log('Authentication succeeded for ' + result.user.email);
+        return handler();
+      } else {
+        console.log('Authentication failed - reason: ' + result.reason);
+        res.status(403).render('signin', {
+          title: 'Invalid credentials'
+        });
       }
     });
   }
 }
 
 export async function authenticatePandaUser(
-    panda: Pick<PanDomainAuthentication,'verify'>,
+    panda: Pick<PanDomainAuthentication, 'verify'>,
     req: Request,
     res: Response,
     handler: (user: User) => Promise<void>
@@ -75,11 +78,11 @@ export async function authenticatePandaUser(
       return;
     }
 
-    return panda.verify(cookie).then(({status, user}) => {
-      if(status === AuthenticationStatus.AUTHORISED && user !== undefined) {
-        return handler(user);
-      }
-      else {
+    return panda.verify(cookie).then((result) => {
+      if (result.success && result.user) {
+        console.log('Authentication succeeded for ' + result.user.email);
+        return handler(result.user);
+      } else {
         applyErrorResponse(res, 403, "Invalid credentials");
         return;
       }
