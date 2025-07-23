@@ -8,6 +8,7 @@ import { getValidSecrets } from "../lib/secrets";
 
 import { PandaHmacAuthentication } from "../lib/panda-hmac";
 import { hmacAllowedDateOffsetInMillis } from "../lib/constants";
+import { fromIni, fromNodeProviderChain } from "@aws-sdk/credential-providers";
 
 import {
   PanDomainAuthentication,
@@ -31,7 +32,6 @@ async function initialise(): Promise<AppConfig> {
     [] as string[]
   );
   const LOCAL_PROFILE = 'workflow';
-  const { fromIni, fromNodeProviderChain } = require('@aws-sdk/credential-providers');
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
     hmacSecrets
