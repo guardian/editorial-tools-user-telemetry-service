@@ -14,7 +14,7 @@
     "@types/aws-lambda": "^8.10.31",
     "@types/jest": "^24.0.17",
     "@types/lodash": "^4.14.161",
-    "@vercel/ncc": "^0.33.3",
+    "@vercel/ncc": "^0.38.3",
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
     "dotenv": "^8.0.0",
@@ -34,7 +34,7 @@
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
   },
   "dependencies": {
-    "@guardian/pan-domain-node": "^1.1.0",
+    "@guardian/pan-domain-node": "^1.2.0",
     "ajv": "^6.12.4",
     "aws-sdk": "^2.888.0",
     "aws-serverless-express": "^3.3.6",
