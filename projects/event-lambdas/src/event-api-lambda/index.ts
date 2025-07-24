@@ -31,7 +31,7 @@ async function initialise(): Promise<AppConfig> {
     (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
     [] as string[]
   );
-  const LOCAL_PROFILE = 'workflow';
+  const LOCAL_PROFILE = 'composer';
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
     hmacSecrets
