@@ -6,6 +6,8 @@ Deployed as part of this project – see the README in the project root for deta
 
 ## Running locally
 
+This project need AWS `composer` credentials to run the service locally.
+
 Run `npm i` to install.
 
 Locally, this project depends on localstack to simulate an AWS service, which requires `docker` as a dependency. Before starting the application, run `docker-compose up` in this folder to launch.
