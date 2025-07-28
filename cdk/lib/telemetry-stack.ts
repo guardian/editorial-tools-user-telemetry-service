@@ -179,11 +179,16 @@ export class TelemetryStack extends GuStack {
 			actions: ['secretsmanager:GetSecretValue'],
 			resources: [hmacSecret.secretArn],
 		});
-
+		const pandaConfigAndKeyPolicyStatement = new PolicyStatement({
+			effect: Effect.ALLOW,
+			actions: ['s3:GetObject'],
+			resources: [`arn:aws:s3:::pan-domain-auth-settings/*`],
+		});
 		telemetryAPIFunction.addToRolePolicy(s3PutTelemetryBackendPolicyStatement);
 		telemetryAPIFunction.addToRolePolicy(
 			hmacSecretReadTelemetryBackendPolicyStatement,
 		);
+		telemetryAPIFunction.addToRolePolicy(pandaConfigAndKeyPolicyStatement);
 
 		/**
 		 * S3 event handler lambda

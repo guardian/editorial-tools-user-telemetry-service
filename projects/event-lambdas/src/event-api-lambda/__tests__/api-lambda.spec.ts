@@ -3,7 +3,7 @@ import chai from "chai";
 import chaiHttp from "chai-http";
 import MockDate from "mockdate";
 import { PandaHmacAuthentication } from "../../lib/panda-hmac";
-import {AuthenticationStatus, User} from "@guardian/pan-domain-node";
+import {  AuthenticationResult, User} from "@guardian/pan-domain-node";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
@@ -28,10 +28,15 @@ describe("Event API lambda", () => {
     multifactor: false
 
   }
+  const AuthenticationResult: AuthenticationResult = {
+    success: true,
+    user: fakePerson,
+    shouldRefreshCredentials: false,
+  }
 
   const panDomainAuthentication = {
     verify: (requestCookies: string) =>
-      Promise.resolve({ status: AuthenticationStatus.AUTHORISED, user: fakePerson }),
+      Promise.resolve(AuthenticationResult),
   };
 
   beforeAll(async () => {

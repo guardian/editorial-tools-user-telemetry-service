@@ -560,6 +560,11 @@ def submit_response(event: dict, context, response_status: str, error_message: s
                 "Ref": "EventApiHmacSecret1C59BAF9",
               },
             },
+            {
+              "Action": "s3:GetObject",
+              "Effect": "Allow",
+              "Resource": "arn:aws:s3:::pan-domain-auth-settings/*",
+            },
           ],
           "Version": "2012-10-17",
         },
