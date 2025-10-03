@@ -10,6 +10,7 @@ on:
     pull_request:
       paths:
        - 'projects/user-telemetry-client/**'
+    workflow_dispatch:
 
 jobs:
     ci:
