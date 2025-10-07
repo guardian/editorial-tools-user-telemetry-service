@@ -1,5 +1,5 @@
 
-name: 'Telemetry Client CI'
+name: 'Telemetry Client Semantic Lint CI'
 on:
     pull_request:
       types:
@@ -8,7 +8,7 @@ on:
               - synchronize
       paths:
        - 'projects/user-telemetry-client/**'
-       
+
 jobs:
     semantic-lint:
         runs-on: ubuntu-latest

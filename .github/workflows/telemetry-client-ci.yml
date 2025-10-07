@@ -10,6 +10,7 @@ on:
     pull_request:
       paths:
        - 'projects/user-telemetry-client/**'
+    workflow_dispatch:
 
 jobs:
     ci:
@@ -25,7 +26,7 @@ jobs:
           - uses: actions/setup-node@v2
             with:
               node-version-file: '.nvmrc'
-          - run: npm install
+          - run: npm ci
             working-directory: ./projects/user-telemetry-client
           - run: npm test
             working-directory: ./projects/user-telemetry-client
