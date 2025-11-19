@@ -129,7 +129,8 @@ def handle_managed(request_type, notification_configuration):
 def handle_unmanaged(bucket, stack_id, request_type, notification_configuration, old):
   def get_id(n):
     n['Id'] = ''
-    strToHash=json.dumps(n, sort_keys=True).replace('"Name": "prefix"', '"Name": "Prefix"').replace('"Name": "suffix"', '"Name": "Suffix"')
+    sorted_notifications = sort_filter_rules(n)
+    strToHash=json.dumps(sorted_notifications, sort_keys=True).replace('"Name": "prefix"', '"Name": "Prefix"').replace('"Name": "suffix"', '"Name": "Suffix"')
     return f"{stack_id}-{hash(strToHash)}"
   def with_id(n):
     n['Id'] = get_id(n)
@@ -183,7 +184,21 @@ def submit_response(event: dict, context, response_status: str, error_message: s
       print(response.read().decode("utf-8"))
     print("Status code: " + response.reason)
   except Exception as e:
-      print("send(..) failed executing request.urlopen(..): " + str(e))",
+      print("send(..) failed executing request.urlopen(..): " + str(e))
+
+def sort_filter_rules(json_obj):
+  if not isinstance(json_obj, dict):
+      return json_obj
+  for key, value in json_obj.items():
+      if isinstance(value, dict):
+          json_obj[key] = sort_filter_rules(value)
+      elif isinstance(value, list):
+          json_obj[key] = [sort_filter_rules(item) for item in value]
+  if "Filter" in json_obj and "Key" in json_obj["Filter"] and "FilterRules" in json_obj["Filter"]["Key"]:
+      filter_rules = json_obj["Filter"]["Key"]["FilterRules"]
+      sorted_filter_rules = sorted(filter_rules, key=lambda x: x["Name"])
+      json_obj["Filter"]["Key"]["FilterRules"] = sorted_filter_rules
+  return json_obj",
         },
         "Description": "AWS CloudFormation handler for "Custom::S3BucketNotifications" resources (@aws-cdk/aws-s3)",
         "Handler": "index.handler",
@@ -193,7 +208,7 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             "Arn",
           ],
         },
-        "Runtime": "python3.11",
+        "Runtime": "python3.13",
         "Tags": [
           {
             "Key": "gu:cdk:version",
@@ -272,12 +287,40 @@ def submit_response(event: dict, context, response_status: str, error_message: s
             {
               "Action": "s3:PutBucketNotification",
               "Effect": "Allow",
-              "Resource": "*",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":s3:::",
+                    {
+                      "Ref": "BucketName",
+                    },
+                  ],
+                ],
+              },
             },
             {
               "Action": "s3:GetBucketNotification",
               "Effect": "Allow",
-              "Resource": "*",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":s3:::",
+                    {
+                      "Ref": "BucketName",
+                    },
+                  ],
+                ],
+              },
             },
           ],
           "Version": "2012-10-17",
@@ -1745,6 +1788,9 @@ def submit_response(event: dict, context, response_status: str, error_message: s
         "usertelemetryproxyEC8A2D95",
         "usertelemetryANY08DB1886",
       ],
+      "Metadata": {
+        "aws:cdk:do-not-refactor": true,
+      },
       "Properties": {
         "Description": "Automatically created by the RestApi construct",
         "RestApiId": {
