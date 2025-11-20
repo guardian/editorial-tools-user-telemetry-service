@@ -1,5 +1,4 @@
 import { APIGatewayProxyResult, S3Event } from "aws-lambda";
-
 import { createOkResponse, createErrorResponse } from "../lib/response";
 import {augmentWithId, getEventsFromS3File, putEventsToKinesisStream} from "../lib/util";
 

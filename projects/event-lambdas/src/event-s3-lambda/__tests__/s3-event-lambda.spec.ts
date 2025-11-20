@@ -12,6 +12,7 @@ import {
   putEventsIntoS3Bucket,
   getEventsFromKinesisStream,
 } from "../../lib/util";
+import { TextDecoder } from "util";
 
 jest.mock("uuid", () => ({
   v4: () => "mock-uuid",
@@ -23,7 +24,7 @@ describe("s3 event handler", () => {
 
   beforeAll(async () => {
     try {
-      await s3.listObjects({ Bucket: telemetryBucketName }).promise();
+      await s3.listObjects({ Bucket: telemetryBucketName });
     } catch (e: any) {
       throw new Error(
         `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
@@ -75,14 +76,14 @@ describe("s3 event handler", () => {
       Body: eventsAsNDJSON,
     };
 
-    await s3.putObject(s3Params).promise();
+    await s3.putObject(s3Params);
     const event = getApiGatewayEventForPutEvent(telemetryBucketName, Key);
     await handler(event);
 
     // The written data should be available on the stream as the last two records in JSON
     const result = await getEventsFromKinesisStream();
-    const dataFromStream = result.Records.slice(result.Records.length - 2).map(
-      (record) => JSON.parse(record.Data.toString())
+    const dataFromStream = result.Records?.slice(result.Records.length - 2).map(
+      (record) => JSON.parse(new TextDecoder().decode(record.Data) || '')
     );
 
     expect(dataFromStream).toEqual(eventsAfterKinesisTransforms);

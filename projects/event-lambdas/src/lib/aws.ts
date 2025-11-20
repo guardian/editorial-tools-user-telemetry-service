@@ -1,4 +1,7 @@
-import AWS from "aws-sdk";
+import { fromNodeProviderChain } from "@aws-sdk/credential-providers";
+import { Kinesis } from "@aws-sdk/client-kinesis";
+import { S3 } from "@aws-sdk/client-s3";
+import { SecretsManager } from "@aws-sdk/client-secrets-manager";
 
 /**
  * Is this application running locally, or in AWS?
@@ -10,22 +13,19 @@ import AWS from "aws-sdk";
 export const isRunningLocally =
   !process.env.LAMBDA_TASK_ROOT && !process.env.AWS_EXECUTION_ENV;
 
-// We use localstack to mock AWS services if we are running locally.
-if (isRunningLocally) {
-  AWS.config.update({
-    accessKeyId: "xyz",
-    secretAccessKey: "qwe",
-    s3ForcePathStyle: true,
-    region: "eu-west-1"
-  });
-}
-
 const awsOptions = isRunningLocally
   ? {
+      // We use localstack to mock AWS services if we are running locally.
+      credentials: {
+        accessKeyId: "xyz",
+        secretAccessKey: "qwe",
+      },
+      forcePathStyle: true,
+      region: "eu-west-1",
       endpoint: "http://localhost:4566"
     }
-  : undefined;
+  : { credentials: fromNodeProviderChain()};
 
-export const s3 = new AWS.S3(awsOptions);
-export const kinesis = new AWS.Kinesis(awsOptions);
-export const secretManager = new AWS.SecretsManager(awsOptions);
+export const s3 = new S3(awsOptions);
+export const kinesis = new Kinesis(awsOptions);
+export const secretManager = new SecretsManager(awsOptions);
