@@ -14,20 +14,15 @@ jobs:
   CI:
     runs-on: ubuntu-latest
     permissions:
-      # required by aws-actions/configure-aws-credentials
       id-token: write
       contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
-          aws-region: eu-west-1
-
       - uses: actions/setup-node@v3
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
 
       - name: Install CDK dependencies
         working-directory: cdk
@@ -49,10 +44,10 @@ jobs:
           pip install localstack awscli-local[ver1] # install LocalStack cli and awslocal
           docker pull localstack/localstack         # Make sure to pull the latest version of the image
           localstack start -d                       # Start LocalStack in the background
-          
+
           echo "Waiting for LocalStack startup..."  # Wait 30 seconds for the LocalStack container
           localstack wait -t 30                     # to become ready before timing out 
-          echo "Startup complete"          
+          echo "Startup complete"
 
       - name: Create LocalStack resources
         working-directory: projects/event-lambdas
@@ -82,8 +77,10 @@ jobs:
         working-directory: projects/event-lambdas/dist
         run: zip -r -j redrive-from-S3-lambda.zip redrive-from-S3-lambda/*
 
-      - uses: guardian/actions-riff-raff@v2
+      - uses: guardian/actions-riff-raff@v4
         with:
+          role-arn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
           projectName: Editorial Tools::Telemetry Service event lambda
           buildNumberOffset: 187
           configPath: cdk/cdk.out/riff-raff.yaml
