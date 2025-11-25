@@ -79,7 +79,7 @@ jobs:
 
       - uses: guardian/actions-riff-raff@v4
         with:
-          role-arn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
+          roleArn: ${{ secrets.GU_RIFF_RAFF_ROLE_ARN }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           projectName: Editorial Tools::Telemetry Service event lambda
           buildNumberOffset: 187
