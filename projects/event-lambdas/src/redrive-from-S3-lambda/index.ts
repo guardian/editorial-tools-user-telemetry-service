@@ -5,7 +5,6 @@ import {
 } from "../lib/util";
 import {s3} from "../lib/aws";
 import {telemetryBucketName} from "../lib/constants";
-import {Marker} from "aws-sdk/clients/s3";
 
 const oneMinInMillis = 60 * 1000;
 const tenMinsInMillis = 10 * oneMinInMillis;
@@ -15,8 +14,8 @@ const SCALING_DOWN_KINESIS = "SCALING_DOWN_KINESIS" as const;
 type MarkerDone = null;
 
 export const handler = async (
-  event: { Payload?: Marker | typeof SCALING_DOWN_KINESIS | unknown }
-): Promise<Marker | MarkerDone | typeof SCALING_DOWN_KINESIS> => {
+  event: { Payload?: string | typeof SCALING_DOWN_KINESIS | unknown }
+): Promise<string | MarkerDone | typeof SCALING_DOWN_KINESIS> => {
 
   const startTimeEpoch = new Date().getTime();
 
@@ -39,7 +38,7 @@ export const handler = async (
 
   const maybeStartingMarker = event?.Payload;
 
-  const processPageOfFiles = async (maybeMarker: Marker | undefined): Promise<Marker | MarkerDone> => {
+  const processPageOfFiles = async (maybeMarker: string | undefined): Promise<string | MarkerDone> => {
 
     // we could instead turn on bucket inventory, and work through that
     // (this would mean we could start with latest, working back through time, as more recent is probably most useful/urgent)
@@ -47,7 +46,7 @@ export const handler = async (
       Bucket: telemetryBucketName,
       Marker: maybeMarker,
       MaxKeys: 500, // although max is 1000, we want to ensure the lambda can send all the events before timing out and some event files are massive
-    }).promise();
+    });
 
     const pageOfFiles = pageOfFilesResponse.Contents;
 

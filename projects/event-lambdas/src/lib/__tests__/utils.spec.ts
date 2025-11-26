@@ -115,7 +115,7 @@ describe("utils", () => {
     });
 
     const listDataObjects = async () => {
-      const dataListing = await s3.listObjects({Bucket: telemetryBucketName, Prefix: 'data'}).promise();
+      const dataListing = await s3.listObjects({Bucket: telemetryBucketName, Prefix: 'data'});
       return (dataListing.Contents ?? []).map(({Key}) => Key as string)
     }
 
@@ -127,7 +127,7 @@ describe("utils", () => {
         await s3.deleteObject({
           Bucket: telemetryBucketName,
           Key: objectLocation,
-        }).promise();
+        });
       }))
     });
 
@@ -170,10 +170,9 @@ describe("utils", () => {
         .getObject({
           Bucket: telemetryBucketName,
           Key: expectedLocation,
-        })
-        .promise();
-
-        await expect(writtenFile.Body?.toString()).toBe(expectedContents);
+        });
+        const actualFileContents = await writtenFile.Body?.transformToString();
+        expect(actualFileContents).toBe(expectedContents);
       }));
 
       // Check we have only the expected files

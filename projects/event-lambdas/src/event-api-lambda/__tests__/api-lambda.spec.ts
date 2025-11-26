@@ -41,7 +41,7 @@ describe("Event API lambda", () => {
 
   beforeAll(async () => {
     try {
-      await s3.listObjects({ Bucket: telemetryBucketName }).promise();
+      await s3.listObjects({ Bucket: telemetryBucketName });
     } catch (e: any) {
       throw new Error(
         `Error with localstack – the tests require localstack to be running with an S3 bucket named '${telemetryBucketName}' available. Is localstack running? The error was: ${e.message}`
@@ -324,11 +324,12 @@ describe("Event API lambda", () => {
         Bucket: telemetryBucketName,
         Key: res.body.message,
       };
-      const writtenFile = await s3.getObject(params).promise();
+      const writtenFile = await s3.getObject(params);
+      const actualFileContents = await writtenFile.Body?.transformToString();
 
       // We expect the file to contain our request as NDJSON
       const expectedFileContents = `${JSON.stringify(request[0])}\n`;
-      expect(writtenFile.Body?.toString()).toBe(expectedFileContents);
+      expect(actualFileContents).toBe(expectedFileContents);
     });
   });
 

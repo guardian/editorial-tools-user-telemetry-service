@@ -2,13 +2,14 @@ import ndjson from "ndjson";
 import Ajv from "ajv";
 import { v4 as uuidv4 } from "uuid";
 import cyrpto from "crypto";
+import { TextEncoder } from "util";
 
 import eventApiInputSchema from "../schema/eventApiInput.schema.json";
 import { IUserTelemetryEvent } from "../../../definitions/IUserTelemetryEvent";
 import { Either } from "./types";
 import { s3, kinesis } from "./aws";
 import { telemetryBucketName, telemetryStreamName } from "./constants";
-import {PutRecordsRequestEntryList} from "aws-sdk/clients/kinesis";
+import { PutRecordsRequestEntry } from "@aws-sdk/client-kinesis";
 import {IUserTelemetryEventWithId} from "../../../definitions/IUserTelemetryEventWithId";
 
 const ajv = new Ajv();
@@ -96,7 +97,9 @@ export const putEventsIntoS3Bucket = async (
       ContentType: "application/json",
     };
 
-    return s3.putObject(params).promise().then((_) => telemetryBucketKey)
+    return (
+      s3.putObject(params).then((_) => telemetryBucketKey)
+    );
   }))
 
   return keysWritten;
@@ -109,8 +112,8 @@ export const getEventsFromS3File = async (
     Bucket: telemetryBucketName,
     Key,
   };
-  const file = await s3.getObject(params).promise();
-  const fileBuffer = file.Body?.toString() || "";
+  const file = await s3.getObject(params);
+  const fileBuffer = await file.Body?.transformToString() || "";
   const maybeEventsObject = convertNDJSONToEvents(fileBuffer);
   return parseEventJson(maybeEventsObject);
 };
@@ -145,14 +148,15 @@ const oneMegabyteInBytes = 1024 * 1024;
 const fiveMegabytesInBytes = 5 * oneMegabyteInBytes;
 export const putEventsToKinesisStream = async (events: IUserTelemetryEventWithId[], options?: { shouldThrowOnError?: boolean, shouldScaleOnDemand?: boolean }) => {
   const mbPerSecondLimit = options?.shouldScaleOnDemand ? await commenceScaleKinesisShardCount("double") : 1;
-  const chunkedRecords: PutRecordsRequestEntryList[] = events.reduce((acc, event) => {
-    const record = {
-      Data: JSON.stringify({
-        "@timestamp": event.eventTime,
-        ...event,
-        tags: undefined, // 'tags' is a reserved field name since logstash v8...
-        _tags: event.tags, // ... so now we re-write to _tags
-      }),
+  const chunkedRecords: PutRecordsRequestEntry[][] = events.reduce((acc, event) => {
+    const dataString = JSON.stringify({
+      "@timestamp": event.eventTime,
+      ...event,
+      tags: undefined, // 'tags' is a reserved field name since logstash v8...
+      _tags: event.tags, // ... so now we re-write to _tags
+    });
+    const record: PutRecordsRequestEntry = {
+      Data: new TextEncoder().encode(dataString),
       // Ordering doesn't matter
       PartitionKey: uuidv4(),
     };
@@ -166,17 +170,17 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEventWithId
     else {
       return [...acc, [record]];
     }
-  }, [] as PutRecordsRequestEntryList[]);
+  }, [] as PutRecordsRequestEntry[][]);
 
   for (const Records of chunkedRecords) {
     const chunkStartTime = new Date().getTime();
     const putRecordsResult = await kinesis.putRecords({
       Records,
       StreamName: telemetryStreamName,
-    }).promise();
+    });
 
-    const recordsWithErrors = putRecordsResult.Records.filter(_ => !!_.ErrorCode);
-    if(recordsWithErrors.length > 0) {
+    const recordsWithErrors = putRecordsResult.Records?.filter(_ => !!_.ErrorCode);
+    if(recordsWithErrors && recordsWithErrors.length > 0) {
       console.error("Failed to write some records to Kinesis", recordsWithErrors)
       if(options?.shouldThrowOnError){
         throw new Error(`Failed to write ${recordsWithErrors.length} records to Kinesis. Terminating.`)
@@ -197,27 +201,24 @@ export const putEventsToKinesisStream = async (events: IUserTelemetryEventWithId
 
 export const getEventsFromKinesisStream = async () => {
   const streamDescription = await kinesis
-    .describeStream({ StreamName: telemetryStreamName })
-    .promise();
+    .describeStream({ StreamName: telemetryStreamName });
   const shardIterator = await kinesis
     .getShardIterator({
-      ShardId: streamDescription.StreamDescription.Shards[0].ShardId,
+      ShardId: streamDescription.StreamDescription?.Shards?.[0]?.ShardId!,
       StreamName: telemetryStreamName,
       ShardIteratorType: "TRIM_HORIZON",
-    })
-    .promise();
+    });
   return await kinesis
     .getRecords({
       ShardIterator: shardIterator.ShardIterator!,
-    })
-    .promise();
+    });
 };
 
 export const commenceScaleKinesisShardCount = async (operation: "double" | "half"): Promise<number> => {
-  const streamStatus = await kinesis.describeStream({ StreamName: telemetryStreamName }).promise()
-    .then(_ => _.StreamDescription.StreamStatus);
+  const streamStatus = await kinesis.describeStream({ StreamName: telemetryStreamName })
+    .then(_ => _.StreamDescription?.StreamStatus);
   // if lots of scaling has taken place in the retention period of the stream, there are too may shards returned in the describeStream result, so we need to count shards explicitly
-  const activeShards = await kinesis.listShards({ StreamName: telemetryStreamName, ShardFilter: { Type: "AT_LATEST" }}).promise()
+  const activeShards = await kinesis.listShards({ StreamName: telemetryStreamName, ShardFilter: { Type: "AT_LATEST" }})
     .then(_ => _.Shards!.filter(_ => !_.SequenceNumberRange?.EndingSequenceNumber));
   const currentShardCount = activeShards.length;
 
@@ -236,7 +237,7 @@ export const commenceScaleKinesisShardCount = async (operation: "double" | "half
       StreamName: telemetryStreamName,
       TargetShardCount: desiredShards,
       ScalingType: "UNIFORM_SCALING",
-    }).promise();
+    });
     return desiredShards; // when scaling down we can return the desired number of shards, so that if we're still sending messages we don't send too many once the reduced shard count kicks in
   }
   else if(operation === "double" && currentShardCount >= 32){
@@ -251,7 +252,7 @@ export const commenceScaleKinesisShardCount = async (operation: "double" | "half
       StreamName: telemetryStreamName,
       TargetShardCount: desiredShards,
       ScalingType: "UNIFORM_SCALING",
-    }).promise();
+    });
     return currentShardCount; //  return current shard count since it takes a few mins to update, and we don't want to get throttled
   }
 }

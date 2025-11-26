@@ -22,7 +22,6 @@ const getSecretFromAws: GetSecret = (
       SecretId: secretId,
       VersionStage: stage,
     })
-    .promise()
     .then((secret) => ({
       stage,
       value: secret.SecretString,
