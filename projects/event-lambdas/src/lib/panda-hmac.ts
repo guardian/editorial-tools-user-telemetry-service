@@ -11,6 +11,7 @@ function isHMACValid(
   hmac.update(content, "utf8");
 
   const expectedToken = "HMAC " + hmac.digest("base64");
+  console.log("isHMACValid ", expectedToken, requestToken);
   return expectedToken === requestToken;
 }
 
@@ -26,7 +27,7 @@ function isDateValid(
 
   const currentDate = new Date().getTime();
   const dateDelta = Math.abs(parsedDate - currentDate);
-
+  console.log("isDateValid ", currentDate, parsedDate, hmacAllowedDateOffsetInMillis);
   return dateDelta < hmacAllowedDateOffsetInMillis;
 }
 
