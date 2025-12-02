@@ -11,7 +11,7 @@ function isHMACValid(
   hmac.update(content, "utf8");
 
   const expectedToken = "HMAC " + hmac.digest("base64");
-  console.log("isHMACValid ", expectedToken, requestToken);
+  console.log("isHMACValid for", path, "at", date, expectedToken, requestToken, expectedToken === requestToken);
   return expectedToken === requestToken;
 }
 
@@ -27,7 +27,7 @@ function isDateValid(
 
   const currentDate = new Date().getTime();
   const dateDelta = Math.abs(parsedDate - currentDate);
-  console.log("isDateValid ", currentDate, parsedDate, hmacAllowedDateOffsetInMillis);
+  console.log("isDateValid for", requestDate, currentDate, parsedDate, hmacAllowedDateOffsetInMillis, dateDelta < hmacAllowedDateOffsetInMillis);
   return dateDelta < hmacAllowedDateOffsetInMillis;
 }
 
@@ -41,13 +41,20 @@ export class PandaHmacAuthentication {
   }
 
   verify(requestDate: string, path: string, requestToken: string): boolean {
-    console.log("Verifying HMAC authentication ", this.hmacSecretKeys.length, " keys available");
-    return this.hmacSecretKeys.some(
+    console.log("Verifying HMAC authentication ", this.hmacSecretKeys.length, " keys available for ", path, " at ", requestDate);
+    const result = this.hmacSecretKeys.some(
       (secretKey) =>
         // Is the date in the header within the allowable range?
         isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&
         // Check the HMAC head
         isHMACValid(secretKey, requestDate, path, requestToken)
     );
+    if (!result) {
+      console.log("Verifying HMAC authentication failed ", result);
+      this.hmacSecretKeys.forEach((secretKey) => {
+        console.log("HMAC check with key - ", isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate), isHMACValid(secretKey, requestDate, path, requestToken));
+      });
+    }
+    return result;
   }
 }
