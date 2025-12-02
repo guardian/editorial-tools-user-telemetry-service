@@ -35,6 +35,7 @@ export async function authenticated(
     } else {
       const message =
           "Invalid HMAC authenticated request!";
+      console.log(message, requestDate, requestToken, req.path);
       applyErrorResponse(res, 403, message);
       return;
     }
