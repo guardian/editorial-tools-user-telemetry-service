@@ -375,81 +375,8 @@ def sort_filter_rules(json_obj):
         "Environment": {
           "Variables": {
             "APP": "user-telemetry",
-            "HMAC_SECRET_LOCATION": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Fn::Select": [
-                      0,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      1,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      2,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              ],
+            "HMAC_SECRET_KEY_ARN": {
+              "Ref": "EventApiHmacSecret1C59BAF9",
             },
             "LOG_ENDPOINT_ENABLED": "true",
             "MAX_LOG_SIZE": {
@@ -467,6 +394,9 @@ def sort_filter_rules(json_obj):
         },
         "FunctionName": "event-api-lambda-CODE",
         "Handler": "index.handler",
+        "Layers": [
+          "arn:aws:lambda:eu-west-1:015030872274:layer:AWS-Parameters-and-Secrets-Lambda-Extension:21",
+        ],
         "MemorySize": 128,
         "ReservedConcurrentExecutions": 5,
         "Role": {
@@ -633,81 +563,8 @@ def sort_filter_rules(json_obj):
         "Environment": {
           "Variables": {
             "APP": "user-telemetry",
-            "HMAC_SECRET_LOCATION": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Fn::Select": [
-                      0,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      1,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      2,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              ],
+            "HMAC_SECRET_KEY_ARN": {
+              "Ref": "EventApiHmacSecret1C59BAF9",
             },
             "LOG_ENDPOINT_ENABLED": "true",
             "MAX_LOG_SIZE": {
@@ -745,6 +602,9 @@ def sort_filter_rules(json_obj):
         },
         "FunctionName": "event-s3-lambda-CODE",
         "Handler": "index.handler",
+        "Layers": [
+          "arn:aws:lambda:eu-west-1:015030872274:layer:AWS-Parameters-and-Secrets-Lambda-Extension:21",
+        ],
         "MemorySize": 128,
         "ReservedConcurrentExecutions": 5,
         "Role": {
@@ -908,81 +768,8 @@ def sort_filter_rules(json_obj):
         "Environment": {
           "Variables": {
             "APP": "user-telemetry-redrive-from-s3-lambda",
-            "HMAC_SECRET_LOCATION": {
-              "Fn::Join": [
-                "-",
-                [
-                  {
-                    "Fn::Select": [
-                      0,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      1,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    "Fn::Select": [
-                      2,
-                      {
-                        "Fn::Split": [
-                          "-",
-                          {
-                            "Fn::Select": [
-                              6,
-                              {
-                                "Fn::Split": [
-                                  ":",
-                                  {
-                                    "Ref": "EventApiHmacSecret1C59BAF9",
-                                  },
-                                ],
-                              },
-                            ],
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-              ],
+            "HMAC_SECRET_KEY_ARN": {
+              "Ref": "EventApiHmacSecret1C59BAF9",
             },
             "LOG_ENDPOINT_ENABLED": "true",
             "MAX_LOG_SIZE": {
@@ -1020,6 +807,9 @@ def sort_filter_rules(json_obj):
         },
         "FunctionName": "flexible-CODE-user-telemetry-redrive-from-s3-lambda",
         "Handler": "index.handler",
+        "Layers": [
+          "arn:aws:lambda:eu-west-1:015030872274:layer:AWS-Parameters-and-Secrets-Lambda-Extension:21",
+        ],
         "LoggingConfig": {
           "LogFormat": "Text",
         },

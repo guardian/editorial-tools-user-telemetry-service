@@ -19,7 +19,13 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import { Stream } from 'aws-cdk-lib/aws-kinesis';
 import type { FunctionProps } from 'aws-cdk-lib/aws-lambda';
-import { Code, Function, LayerVersion, LoggingFormat, Runtime } from 'aws-cdk-lib/aws-lambda';
+import {
+	Code,
+	Function,
+	LayerVersion,
+	LoggingFormat,
+	Runtime,
+} from 'aws-cdk-lib/aws-lambda';
 import { Bucket, EventType } from 'aws-cdk-lib/aws-s3';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Secret } from 'aws-cdk-lib/aws-secretsmanager';
@@ -163,13 +169,6 @@ export class TelemetryStack extends GuStack {
 					deployBucket,
 					`${this.stack}/${this.stage}/event-api-lambda/event-api-lambda.zip`,
 				),
-				layers: [
-					LayerVersion.fromLayerVersionArn(
-						this,
-						'ParametersAndSecretsLayer',
-						'arn:aws:lambda:eu-west-1:015030872274:layer:AWS-Parameters-and-Secrets-Lambda-Extension-Arm64:12',
-					),
-				],
 			});
 			const fnTags = Tags.of(fn);
 			fnTags.add('App', appName);
