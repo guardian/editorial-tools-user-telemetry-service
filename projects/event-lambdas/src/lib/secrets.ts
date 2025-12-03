@@ -21,8 +21,9 @@ const getSecretFromAws: GetSecret = async (
   try {
     const response = await fetch(`http://localhost:2773/secretsmanager/get?secretId=${secretArn}&versionStage=${stage}`,
         {headers: {'X-AWS-Parameters-Secrets-Token': process.env.AWS_SESSION_TOKEN!}})
-    const responseBody = await response.json() as unknown as { SecretString: string, CreatedDate: string };
+    const responseBody = await response.json() as unknown as { SecretString: string, CreatedDate: string, VersionStages: string[] };
     if (response.ok && responseBody.SecretString && responseBody.CreatedDate) {
+      console.log(`Successfully retrieved secret for stage ${stage} CreatedDate: ${responseBody.CreatedDate} VersionStages: ${responseBody.VersionStages.join(", ")}`);
       return {
         stage,
         value: responseBody.SecretString,
