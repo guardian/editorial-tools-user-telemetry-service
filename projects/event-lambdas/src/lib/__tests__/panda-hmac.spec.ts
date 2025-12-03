@@ -32,7 +32,7 @@ describe("panda-hmac", () => {
       const invalidRequestToken =
         "HMAC XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/Bs=";
 
-      const verified = pandaHmac.verify(
+      const verified = await pandaHmac.verify(
         constantDate,
         requestPath,
         invalidRequestToken
