@@ -56,10 +56,10 @@ describe("Event API lambda", () => {
   });
 
   // Simulates having AWSCURRENT & AWSPREVIOUS versions of a secret
-  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, [
+  const pandaHmacAuthentication = new PandaHmacAuthentication(5000, () => Promise.resolve([
     "changeme",
     "updated",
-  ]);
+  ]));
 
   const testApp = createApp({
     pandaHmacAuthentication,

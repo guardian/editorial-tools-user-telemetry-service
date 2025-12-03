@@ -26,15 +26,17 @@ async function initialise(): Promise<AppConfig> {
   console.log("Running initialisation phase");
 
   // Get valid secrets for the HMAC key
-  const validSecrets = await getValidSecrets(hmacSecretLocation);
-  const hmacSecrets = validSecrets.reduce(
-    (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
-    [] as string[]
-  );
   const LOCAL_PROFILE = 'composer';
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
-    hmacSecrets
+    async () => {
+      const validSecrets = await getValidSecrets(hmacSecretLocation);
+      const hmacSecrets = validSecrets.reduce(
+        (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
+        [] as string[]
+      );
+      return hmacSecrets;
+    }
   );
 
   const panDomainAuthentication = new PanDomainAuthentication(

@@ -33,13 +33,18 @@ function isDateValid(
 export class PandaHmacAuthentication {
   hmacAllowedDateOffsetInMillis: number;
   hmacSecretKeys: string[];
+  getHmacSecretKeys: () => Promise<string[]>;
 
-  constructor(hmacAllowedDateOffsetInMillis: number, hmacSecretKeys: string[]) {
+  constructor(hmacAllowedDateOffsetInMillis: number, getHmacSecretKeys: () => Promise<string[]>) {
     this.hmacAllowedDateOffsetInMillis = hmacAllowedDateOffsetInMillis;
-    this.hmacSecretKeys = hmacSecretKeys;
+    this.hmacSecretKeys = [];
+    this.getHmacSecretKeys = getHmacSecretKeys;
   }
 
-  verify(requestDate: string, path: string, requestToken: string): boolean {
+  async verify(requestDate: string, path: string, requestToken: string): Promise<boolean> {
+    if (this.hmacSecretKeys.length === 0) {
+      this.hmacSecretKeys = await this.getHmacSecretKeys();
+    }
     return this.hmacSecretKeys.some(
       (secretKey) =>
         // Is the date in the header within the allowable range?
