@@ -28,7 +28,7 @@ const getSecretFromAws: GetSecret = (
       createdDate: secret.CreatedDate,
     }))
     .catch((e) => {
-      console.log(`Error: failed to get secret "${secretId}" for stage ${stage}`, e);
+      console.log(`Error: failed to get secret for stage ${stage}`, e);
       return {
         stage,
       }}
