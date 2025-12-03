@@ -18,6 +18,7 @@
     "@types/aws-lambda": "^8.10.159",
     "@types/jest": "^24.0.17",
     "@types/lodash": "^4.14.161",
+    "@types/node-fetch": "^1.6.7",
     "@vercel/ncc": "^0.38.3",
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
@@ -47,6 +48,7 @@
     "express": "^4.21.2",
     "lodash": "^4.17.20",
     "ndjson": "^2.0.0",
+    "node-fetch": "2.6.12",
     "typescript-json-schema": "^0.43.0",
     "uuid": "^8.3.0"
   }

@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { getValidSecrets, SecretValue } from "./secrets";
 
 function isHMACValid(
   hmacSecretKey: string,
@@ -32,15 +33,19 @@ function isDateValid(
 
 export class PandaHmacAuthentication {
   hmacAllowedDateOffsetInMillis: number;
-  hmacSecretKeys: string[];
+  getHmacSecretKeys: () => Promise<string[]>;
 
-  constructor(hmacAllowedDateOffsetInMillis: number, hmacSecretKeys: string[]) {
+  constructor(hmacAllowedDateOffsetInMillis: number, getHmacSecretKeys: () => Promise<string[]>) {
     this.hmacAllowedDateOffsetInMillis = hmacAllowedDateOffsetInMillis;
-    this.hmacSecretKeys = hmacSecretKeys;
-  }
-
-  verify(requestDate: string, path: string, requestToken: string): boolean {
-    return this.hmacSecretKeys.some(
+    this.getHmacSecretKeys = getHmacSecretKeys;
+}
+  async verify(requestDate: string, path: string, requestToken: string): Promise<boolean> {
+    const hmacSecrets = await this.getHmacSecretKeys();
+    if (hmacSecrets.length === 0) {
+      console.log("Error: no HMAC secret keys available for verification");
+      return false;
+    }
+    return hmacSecrets.some(
       (secretKey) =>
         // Is the date in the header within the allowable range?
         isDateValid(this.hmacAllowedDateOffsetInMillis, requestDate) &&

@@ -3,7 +3,7 @@ import { Handler } from "aws-lambda";
 
 import { createApp } from "./application";
 import { isRunningLocally } from "../lib/aws";
-import { hmacSecretLocation, pandaSettingsKey } from "../lib/constants";
+import { hmacSecretKeyArn, pandaSettingsKey } from "../lib/constants";
 import { getValidSecrets } from "../lib/secrets";
 
 import { PandaHmacAuthentication } from "../lib/panda-hmac";
@@ -24,18 +24,22 @@ export type AppConfig = {
 // See https://docs.aws.amazon.com/lambda/latest/operatorguide/static-initialization.html
 async function initialise(): Promise<AppConfig> {
   console.log("Running initialisation phase");
-
-  // Get valid secrets for the HMAC key
-  const validSecrets = await getValidSecrets(hmacSecretLocation);
-  const hmacSecrets = validSecrets.reduce(
-    (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
-    [] as string[]
-  );
-  const LOCAL_PROFILE = 'composer';
+  console.log(`HMAC Secret Key ARN is detected: ${!!hmacSecretKeyArn}`);
+  const LOCAL_PROFILE = 'composer'; 
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
-    hmacSecrets
-  );
+    async () => {
+      if (hmacSecretKeyArn) {
+        const validSecrets = await getValidSecrets(hmacSecretKeyArn);
+        return validSecrets.reduce(
+          (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
+          [] as string[]
+        );
+      } else {
+        console.log("Error: No HMAC secret ARN provided");
+        return [];
+      }
+    });
 
   const panDomainAuthentication = new PanDomainAuthentication(
     "gutoolsAuth-assym", // cookie name

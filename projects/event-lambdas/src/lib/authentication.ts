@@ -30,7 +30,7 @@ export async function authenticated(
     const requestToken = req.headers["x-gu-tools-hmac-token"] as string;
     const requestDate = req.headers["x-gu-tools-hmac-date"] as string;
 
-    if(hmac.verify(requestDate, req.path, requestToken)) {
+    if(await hmac.verify(requestDate, req.path, requestToken)) {
       return handler();
     } else {
       const message =
