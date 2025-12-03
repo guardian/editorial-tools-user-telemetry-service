@@ -1,3 +1,4 @@
+import fetch from "node-fetch";
 import { secretManager } from "../lib/aws";
 
 const availableStages = ["AWSPREVIOUS", "AWSCURRENT"] as const;
@@ -9,30 +10,35 @@ export type SecretValue = {
 };
 
 export type GetSecret = (
-  secretId: string,
+  secretArn: string,
   stage: SecretStage
 ) => Promise<SecretValue>;
 
-const getSecretFromAws: GetSecret = (
-  secretId: string,
+const getSecretFromAws: GetSecret = async (
+  secretArn: string,
   stage: SecretStage
-): Promise<SecretValue> =>
-  secretManager
-    .getSecretValue({
-      SecretId: secretId,
-      VersionStage: stage,
-    })
-    .then((secret) => ({
-      stage,
-      value: secret.SecretString,
-      createdDate: secret.CreatedDate,
-    }))
-    .catch((e) => {
-      console.log(`Error: failed to get secret for stage ${stage}`, e);
+): Promise<SecretValue> => {
+  try {
+    const response = await fetch(`http://localhost:2773/secretsmanager/get?secretId=${secretArn}&versionStage=${stage}`,
+        {headers: {'X-AWS-Parameters-Secrets-Token': process.env.AWS_SESSION_TOKEN!}})
+    const responseBody = await response.json() as unknown as { SecretString: string, CreatedDate: string };
+    if (response.ok && responseBody.SecretString && responseBody.CreatedDate) {
       return {
         stage,
-      }}
-    );
+        value: responseBody.SecretString,
+        createdDate: new Date(responseBody.CreatedDate)
+      };
+    } else {
+      console.log(`Error: failed to get secret for stage ${stage} response ${response.status} ${response.statusText} CreatedDate: ${responseBody.CreatedDate}`);
+      return { stage };
+    }
+  } catch (e) {
+    console.log(`Error: failed to get secret for stage ${stage}`, e);
+    return {
+      stage,
+    };
+  }
+};      
 
 function isYoungerThanInSeconds(date: Date, maxAgeInSeconds: number) {
   const currentTimeInMillis = Date.now();
@@ -53,12 +59,12 @@ const isValidSecret = (secretValue: SecretValue, maxAgeInSeconds: number) =>
 export const defaultMaxAgeInSeconds = 432000;
 
 export const getValidSecrets = async (
-  secretId: string,
+  secretArn: string,
   maxAgeInSeconds: number = defaultMaxAgeInSeconds,
   getSecret: GetSecret = getSecretFromAws
 ) =>
   (
     await Promise.all(
-      availableStages.map((stage) => getSecret(secretId, stage))
+      availableStages.map((stage) => getSecret(secretArn, stage))
     )
   ).filter((secretValue) => isValidSecret(secretValue, maxAgeInSeconds));
