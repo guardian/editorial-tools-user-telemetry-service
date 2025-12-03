@@ -41,6 +41,10 @@ export class PandaHmacAuthentication {
 }
   async verify(requestDate: string, path: string, requestToken: string): Promise<boolean> {
     const hmacSecrets = await this.getHmacSecretKeys();
+    if (hmacSecrets.length === 0) {
+      console.log("Error: no HMAC secret keys available for verification");
+      return false;
+    }
     return hmacSecrets.some(
       (secretKey) =>
         // Is the date in the header within the allowable range?
