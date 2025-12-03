@@ -27,9 +27,12 @@ const getSecretFromAws: GetSecret = (
       value: secret.SecretString,
       createdDate: secret.CreatedDate,
     }))
-    .catch((_) => ({
-      stage,
-    }));
+    .catch((e) => {
+      console.log(`Error: failed to get secret for stage ${stage}`, e);
+      return {
+        stage,
+      }}
+    );
 
 function isYoungerThanInSeconds(date: Date, maxAgeInSeconds: number) {
   const currentTimeInMillis = Date.now();

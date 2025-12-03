@@ -7,6 +7,10 @@
     "node": "^20.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-lambda": "^3.934.0",
+    "@aws-sdk/client-kinesis": "^3.934.0",
+    "@aws-sdk/client-secrets-manager": "^3.934.0",
+    "@aws-sdk/credential-providers": "^3.934.0",
     "@types/aws-serverless-express": "^3.3.1",
     "@types/express": "^4.17.0",
     "@types/ndjson": "^2.0.0",
@@ -27,7 +31,10 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m && ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m && ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m",
+    "build-event-api-lambda": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build-event-s3-lambda": "ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build-redrive-from-S3-lambda": "ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build": "npm run -s build-event-api-lambda && npm run -s build-event-s3-lambda && npm run -s build-redrive-from-S3-lambda",
     "start": "ts-node-dev --ignore-watch node_modules src/event-api-lambda/index.ts",
     "test": "JEST_CIRCUS=1 jest --coverage",
     "test:watch": "JEST_CIRCUS=1 jest --watch",
@@ -36,10 +43,6 @@
   "dependencies": {
     "@guardian/pan-domain-node": "^1.2.0",
     "ajv": "^6.12.4",
-    "@aws-sdk/client-lambda": "^3.934.0",
-    "@aws-sdk/client-kinesis": "^3.934.0",
-    "@aws-sdk/client-secrets-manager": "^3.934.0",
-    "@aws-sdk/credential-providers": "^3.934.0",
     "aws-serverless-express": "^3.3.6",
     "express": "^4.21.2",
     "lodash": "^4.17.20",
