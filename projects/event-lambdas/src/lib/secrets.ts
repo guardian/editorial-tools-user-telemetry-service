@@ -1,5 +1,6 @@
 import fetch from "node-fetch";
 import { secretManager } from "../lib/aws";
+import { get } from "lodash";
 
 const availableStages = ["AWSPREVIOUS", "AWSCURRENT"] as const;
 export type SecretStage = (typeof availableStages)[number];
@@ -34,11 +35,32 @@ const getSecretFromAws: GetSecret = async (
     }
   } catch (e) {
     console.log(`Error: failed to get secret for stage ${stage}`, e);
-    return {
-      stage,
-    };
+    return { stage };
   }
-};      
+};
+
+const delay = (delayInMs: number) => new Promise(resolve => setTimeout(resolve, delayInMs));
+const retry = async (
+  getSecretFn: () => Promise<SecretValue>,
+  maxAttempts: number,
+  retryDelayMs: number
+): Promise<SecretValue> => {
+
+  const secretValue = await getSecretFn();
+  if (secretValue.value) {
+    return secretValue;
+  }
+  else {
+    if (maxAttempts <= 1) {
+      console.log(`Error: failed to get secret.  Maximum number of attempts reached.`);
+      return secretValue;
+    }
+    else {
+      console.log(`Error: failed to get secret.  Retrying in ${retryDelayMs} ms.  Attempt ${maxAttempts - 1}`);
+      return delay( retryDelayMs ).then(() => retry(getSecretFn, maxAttempts - 1, retryDelayMs));
+    }
+  }
+};
 
 function isYoungerThanInSeconds(date: Date, maxAgeInSeconds: number) {
   const currentTimeInMillis = Date.now();
@@ -65,6 +87,6 @@ export const getValidSecrets = async (
 ) =>
   (
     await Promise.all(
-      availableStages.map((stage) => getSecret(secretArn, stage))
+      availableStages.map((stage) => retry(() => getSecret(secretArn, stage), 3, 500))
     )
   ).filter((secretValue) => isValidSecret(secretValue, maxAgeInSeconds));

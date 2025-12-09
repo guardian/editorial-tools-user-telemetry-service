@@ -22,7 +22,7 @@ describe("secrets", () => {
 
   describe("getValidSecrets", () => {
     describe("when NO current OR previous secret is available", () => {
-      const fakeGetSecret = buildGetSecret();
+      const fakeGetSecret = jest.fn(buildGetSecret());
 
       it("returns an empty current secret", async () => {
         const actualCurrentSecret = await getValidSecrets(
@@ -32,6 +32,8 @@ describe("secrets", () => {
         );
 
         expect(actualCurrentSecret).toStrictEqual([noCurrentSecret]);
+        // The function is called 3 times for each stage (AWSCURRENT and AWSPREVIOUS)
+        expect(fakeGetSecret).toHaveBeenCalledTimes(6);
       });
     });
 
@@ -42,7 +44,7 @@ describe("secrets", () => {
         createdDate: new Date(constantDate),
       };
 
-      const fakeGetSecret = buildGetSecret(currentSecret);
+      const fakeGetSecret = jest.fn(buildGetSecret(currentSecret));
 
       it("returns a current secret", async () => {
         const actualCurrentSecret = await getValidSecrets(
@@ -52,6 +54,8 @@ describe("secrets", () => {
         );
 
         expect(actualCurrentSecret).toStrictEqual([currentSecret]);
+        // The function is called once for AWSCURRENT and 3 times for AWSPREVIOUS
+        expect(fakeGetSecret).toHaveBeenCalledTimes(4);
       });
     });
 
@@ -72,7 +76,7 @@ describe("secrets", () => {
         createdDate: secretInDate,
       };
 
-      const fakeGetSecret = buildGetSecret(currentSecret, previousSecret);
+      const fakeGetSecret = jest.fn(buildGetSecret(currentSecret, previousSecret));
 
       it("returns both secret values", async () => {
         const actualCurrentSecret = await getValidSecrets(
@@ -85,6 +89,8 @@ describe("secrets", () => {
           previousSecret,
           currentSecret,
         ]);
+        // The function is called once for each stage (AWSCURRENT and AWSPREVIOUS)
+        expect(fakeGetSecret).toHaveBeenCalledTimes(2);
       });
     });
 
@@ -105,7 +111,7 @@ describe("secrets", () => {
         createdDate: secretTooOldDate,
       };
 
-      const fakeGetSecret = buildGetSecret(currentSecret, previousSecret);
+      const fakeGetSecret = jest.fn(buildGetSecret(currentSecret, previousSecret));
 
       it("returns only the current secret value", async () => {
         const actualCurrentSecret = await getValidSecrets(
@@ -115,6 +121,9 @@ describe("secrets", () => {
         );
 
         expect(actualCurrentSecret).toStrictEqual([currentSecret]);
+        // The function is called once for AWSCURRENT and once times for AWSPREVIOUS
+        // the previous secret is invalid only due to age instead of missing value
+        expect(fakeGetSecret).toHaveBeenCalledTimes(2);
       });
     });
   });
