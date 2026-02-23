@@ -42,7 +42,7 @@
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
   },
   "dependencies": {
-    "@guardian/pan-domain-node": "^1.2.0",
+    "@guardian/pan-domain-node": "^1.2.3",
     "ajv": "^6.12.4",
     "aws-serverless-express": "^3.3.6",
     "express": "^4.22.1",
