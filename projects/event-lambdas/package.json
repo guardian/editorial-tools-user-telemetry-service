@@ -7,10 +7,10 @@
     "node": "^20.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.934.0",
-    "@aws-sdk/client-kinesis": "^3.934.0",
-    "@aws-sdk/client-secrets-manager": "^3.934.0",
-    "@aws-sdk/credential-providers": "^3.934.0",
+    "@aws-sdk/client-lambda": "^3.995.0",
+    "@aws-sdk/client-kinesis": "^3.995.0",
+    "@aws-sdk/client-secrets-manager": "^3.995.0",
+    "@aws-sdk/credential-providers": "^3.995.0",
     "@types/aws-serverless-express": "^3.3.1",
     "@types/express": "^4.17.0",
     "@types/ndjson": "^2.0.0",
@@ -42,7 +42,7 @@
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
   },
   "dependencies": {
-    "@guardian/pan-domain-node": "^1.2.0",
+    "@guardian/pan-domain-node": "^1.2.3",
     "ajv": "^6.12.4",
     "aws-serverless-express": "^3.3.6",
     "express": "^4.22.1",
