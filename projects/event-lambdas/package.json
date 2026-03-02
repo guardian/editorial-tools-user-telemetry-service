@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "license": "MIT",
   "engines": {
-    "node": "^20.0"
+    "node": "^24.0"
   },
   "devDependencies": {
     "@aws-sdk/client-lambda": "^3.995.0",
@@ -19,6 +19,7 @@
     "@types/jest": "^24.0.17",
     "@types/lodash": "^4.14.161",
     "@types/node-fetch": "^1.6.7",
+    "@types/node": "^22.15.30",
     "@vercel/ncc": "^0.38.3",
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
@@ -32,9 +33,9 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "build-event-api-lambda": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
-    "build-event-s3-lambda": "ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
-    "build-redrive-from-S3-lambda": "ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m -e aws-sdk -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build-event-api-lambda": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build-event-s3-lambda": "ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
+    "build-redrive-from-S3-lambda": "ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
     "build": "npm run -s build-event-api-lambda && npm run -s build-event-s3-lambda && npm run -s build-redrive-from-S3-lambda",
     "start": "ts-node-dev --ignore-watch node_modules src/event-api-lambda/index.ts",
     "test": "JEST_CIRCUS=1 jest --coverage",
