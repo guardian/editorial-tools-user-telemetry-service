@@ -7,10 +7,11 @@
     "node": "^24.0"
   },
   "devDependencies": {
-    "@aws-sdk/client-lambda": "^3.995.0",
     "@aws-sdk/client-kinesis": "^3.995.0",
+    "@aws-sdk/client-lambda": "^3.995.0",
     "@aws-sdk/client-secrets-manager": "^3.995.0",
     "@aws-sdk/credential-providers": "^3.995.0",
+    "@types/aws-lambda": "^8.10.159",
     "@types/aws-serverless-express": "^3.3.1",
     "@types/body-parser": "1.19.5",
     "@types/connect": "3.4.38",
@@ -23,6 +24,7 @@
     "@types/lodash": "^4.14.161",
     "@types/node": "22.15.30",
     "@types/node-fetch": "^1.6.7",
+    "@types/uuid": "^8.3.0",
     "@vercel/ncc": "^0.38.3",
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
