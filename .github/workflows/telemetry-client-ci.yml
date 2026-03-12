@@ -26,6 +26,7 @@ jobs:
           - uses: actions/setup-node@v2
             with:
               node-version-file: '.nvmrc'
+          - run: npm install -g npm@latest
           - run: npm ci
             working-directory: ./projects/user-telemetry-client
           - run: npm test
@@ -37,5 +38,3 @@ jobs:
             working-directory: ./projects/user-telemetry-client
             env:
               GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
