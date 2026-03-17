@@ -26,7 +26,6 @@ jobs:
           - uses: actions/setup-node@v4
             with:
               node-version-file: '.nvmrc'
-          - run: npm install -g npm@latest
           - run: npm ci
             working-directory: ./projects/user-telemetry-client
           - run: npm test
