@@ -31,9 +31,9 @@ end
 
 ### Data privacy
 
-The storage, retention and usage of tracked user data is determined by the Guardian's privacy policies. These 
+The storage, retention and usage of tracked user data is determined by the Guardian's privacy policies. These
 documents should be considered the source of truth for any data privacy questions. Especially relevant, given tracking is
-intended for internal tools, is the "Employee privacy policy" and the "Use of Cookies and Usage Insights" section. 
+intended for internal tools, is the "Employee privacy policy" and the "Use of Cookies and Usage Insights" section.
 These policies can be accessed by Guardian employees via Spike.
 
 **If there are any doubts about a particular use-case, always consult the Data Protection Officer (DPO).**
@@ -93,7 +93,7 @@ To release changes, deploy the `editorial-tools-user-telemetry-service` project 
 ### Creating and deploying the package
 
 Deploying the package should be handled automatically when changes are made to the user-telemetry-client subproject. The
-merge commit for the PR should use the [conventional commits syntax](https://www.conventionalcommits.org/en/v1.0.0/).
+merge commit for the PR (which you can edit before merging) should use the [conventional commits syntax](https://www.conventionalcommits.org/en/v1.0.0/).
 
 ### Rotating the HMAC key used by machine clients
 
@@ -120,5 +120,4 @@ Done!
 
 **You will have 5 days to update machine clients** that use this key, contact
 the [Editorial Systems Development (ESD)](https://github.com/orgs/guardian/teams/esd) team before doing this so that the
-can ensure they new key is
-rolled out.
+can ensure they new key is rolled out.
