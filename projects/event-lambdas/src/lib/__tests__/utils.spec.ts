@@ -38,7 +38,7 @@ describe("utils", () => {
       expect(determineStageFromHostname("user-telemetry.code.dev-gutools.co.uk")).toBe("CODE");
     });
 
-    it("returns CODE for .code.dev-gutools.co.uk domains", () => {
+    it("returns TEST for .test.dev-gutools.co.uk domains", () => {
       expect(determineStageFromHostname("workflow.test.dev-gutools.co.uk")).toBe("TEST");
       expect(determineStageFromHostname("grid.test.dev-gutools.co.uk")).toBe("TEST");
       expect(determineStageFromHostname("user-telemetry.test.dev-gutools.co.uk")).toBe("TEST");
