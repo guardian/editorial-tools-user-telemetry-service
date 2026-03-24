@@ -38,6 +38,12 @@ describe("utils", () => {
       expect(determineStageFromHostname("user-telemetry.code.dev-gutools.co.uk")).toBe("CODE");
     });
 
+    it("returns TEST for .test.dev-gutools.co.uk domains", () => {
+      expect(determineStageFromHostname("workflow.test.dev-gutools.co.uk")).toBe("TEST");
+      expect(determineStageFromHostname("grid.test.dev-gutools.co.uk")).toBe("TEST");
+      expect(determineStageFromHostname("user-telemetry.test.dev-gutools.co.uk")).toBe("TEST");
+    });
+
     it("returns LOCAL for .local.dev-gutools.co.uk domains", () => {
       expect(determineStageFromHostname("workflow.local.dev-gutools.co.uk")).toBe("LOCAL");
       expect(determineStageFromHostname("composer.local.dev-gutools.co.uk")).toBe("LOCAL");

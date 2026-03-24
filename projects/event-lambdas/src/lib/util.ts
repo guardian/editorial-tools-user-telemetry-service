@@ -25,7 +25,7 @@ export const determineStageFromHostname = (hostname: string): string | undefined
     return undefined;
   }
   
-  const stageMatch = /^.*\.(?<environment>local|code)\.dev-gutools\.co\.uk$|^.*\.gutools\.co\.uk$/.exec(hostname);
+  const stageMatch = /^.*\.(?<environment>local|code|test)\.dev-gutools\.co\.uk$|^.*\.gutools\.co\.uk$/.exec(hostname);
   if (stageMatch) {
     return (stageMatch.groups?.environment || "PROD").toUpperCase();
   }
