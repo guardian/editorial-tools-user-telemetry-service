@@ -12,6 +12,7 @@ import {
 } from 'aws-cdk-lib/aws-apigateway';
 import { Certificate } from 'aws-cdk-lib/aws-certificatemanager';
 import {
+	AccountPrincipal,
 	ArnPrincipal,
 	Effect,
 	PolicyDocument,
@@ -87,6 +88,20 @@ export class TelemetryStack extends GuStack {
 			description:
 				'The HMAC secret key used to authenticate machine clients with the event-api-lambda',
 		});
+
+		const gridAccountId = new CfnParameter(this, 'GridAccountId', {
+			type: 'String',
+			description: 'The account ID of the grid account',
+		});
+
+		hmacSecret.addToResourcePolicy(
+			new PolicyStatement({
+				principals: [new AccountPrincipal(gridAccountId.valueAsString)],
+				effect: Effect.ALLOW,
+				actions: ['secretsmanager:GetSecretValue'],
+				resources: [hmacSecret.secretArn],
+			}),
+		);
 
 		const allowOphanAccessToHmac = new PolicyStatement({
 			effect: Effect.ALLOW,
