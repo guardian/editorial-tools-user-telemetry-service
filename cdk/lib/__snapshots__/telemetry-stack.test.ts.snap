@@ -59,6 +59,10 @@ exports[`The telemetry stack matches the snapshot 1`] = `
       "Description": "SSM parameter containing the S3 bucket name holding distribution artifacts",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
+    "GridAccountId": {
+      "Description": "The account ID of the grid account",
+      "Type": "String",
+    },
     "Hostname": {
       "Description": "Hostname for telemetry endpoint",
       "Type": "String",
@@ -361,6 +365,44 @@ def sort_filter_rules(json_obj):
       },
       "Type": "AWS::SecretsManager::Secret",
       "UpdateReplacePolicy": "Delete",
+    },
+    "EventApiHmacSecretPolicyC8C3661F": {
+      "Properties": {
+        "ResourcePolicy": {
+          "Statement": [
+            {
+              "Action": "secretsmanager:GetSecretValue",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition",
+                      },
+                      ":iam::",
+                      {
+                        "Ref": "GridAccountId",
+                      },
+                      ":root",
+                    ],
+                  ],
+                },
+              },
+              "Resource": {
+                "Ref": "EventApiHmacSecret1C59BAF9",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "SecretId": {
+          "Ref": "EventApiHmacSecret1C59BAF9",
+        },
+      },
+      "Type": "AWS::SecretsManager::ResourcePolicy",
     },
     "EventApiLambda6AA4ADA7": {
       "DependsOn": [
