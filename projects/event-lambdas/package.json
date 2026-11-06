@@ -27,21 +27,21 @@
     "chai": "^4.1.2",
     "chai-http": "^4.0.0",
     "dotenv": "^8.0.0",
-    "jest": "^29.7.0",
-    "jest-circus": "^29.7.0",
+    "jest": "30.5.2",
+    "jest-circus": "30.5.2",
     "mockdate": "^3.0.5",
-    "ts-jest": "^29.3.4",
+    "nodemon": "3.1.14",
+    "ts-jest": "29.4.15",
     "ts-node": "^8.3.0",
-    "ts-node-dev": "^1.0.0-pre.40",
     "typescript": "^5.8.3",
-    "typescript-json-schema": "^0.43.0"
+    "typescript-json-schema": "0.68.0"
   },
   "scripts": {
     "build-event-api-lambda": "ncc build src/event-api-lambda/index.ts -o dist/event-api-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
     "build-event-s3-lambda": "ncc build src/event-s3-lambda/index.ts -o dist/event-s3-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
     "build-redrive-from-S3-lambda": "ncc build src/redrive-from-S3-lambda/index.ts -o dist/redrive-from-S3-lambda -m -e @aws-sdk/client-lambda -e @aws-sdk/client-kinesis -e @aws-sdk/credential-providers -e @aws-sdk/client-secrets-manager",
     "build": "npm run -s build-event-api-lambda && npm run -s build-event-s3-lambda && npm run -s build-redrive-from-S3-lambda",
-    "start": "ts-node-dev --ignore-watch node_modules src/event-api-lambda/index.ts",
+    "start": "nodemon -x ts-node src/event-api-lambda/index.ts",
     "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" JEST_CIRCUS=1 jest --coverage",
     "test:watch": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" JEST_CIRCUS=1 jest --watch",
     "generate-schema": "typescript-json-schema ./src/types.ts IEventApiInput --out ./src/schema/eventApiInput.schema.json --required"
