@@ -55,5 +55,8 @@
     "ndjson": "^2.0.0",
     "node-fetch": "2.6.12",
     "uuid": "^8.3.0"
+  },
+  "overrides": {
+    "proxy-addr": "2.0.8"
   }
 }
