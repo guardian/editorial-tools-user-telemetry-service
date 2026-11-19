@@ -25,7 +25,7 @@ export type AppConfig = {
 async function initialise(): Promise<AppConfig> {
   console.log("Running initialisation phase");
   console.log(`HMAC Secret Key ARN is detected: ${!!hmacSecretKeyArn}`);
-  const LOCAL_PROFILE = 'composer'; 
+  const LOCAL_PROFILE = "composer";
   const pandaHmacAuthentication = new PandaHmacAuthentication(
     hmacAllowedDateOffsetInMillis,
     async () => {
@@ -33,22 +33,25 @@ async function initialise(): Promise<AppConfig> {
         const validSecrets = await getValidSecrets(hmacSecretKeyArn);
         return validSecrets.reduce(
           (acc, curr) => (curr.value ? acc.concat([curr.value]) : acc),
-          [] as string[]
+          [] as string[],
         );
       } else {
         console.log("Error: No HMAC secret ARN provided");
         return [];
       }
-    });
-
-  const panDomainAuthentication = new PanDomainAuthentication(
-    "gutoolsAuth-assym", // cookie name
-    "eu-west-1", // AWS region
-    "pan-domain-auth-settings", // Settings bucket
-    pandaSettingsKey, // Settings file
-    guardianValidation,
-    isRunningLocally ? fromIni({ profile: LOCAL_PROFILE }):  fromNodeProviderChain(),
+    },
   );
+
+  const panDomainAuthentication = await PanDomainAuthentication.builder({
+    cookieName: "gutoolsAuth-assym",
+    region: "eu-west-1",
+    bucket: "pan-domain-auth-settings",
+    keyFile: pandaSettingsKey,
+    validateUser: guardianValidation,
+    credentialsProvider: isRunningLocally
+      ? fromIni({ profile: LOCAL_PROFILE })
+      : fromNodeProviderChain(),
+  });
 
   return {
     pandaHmacAuthentication,
@@ -57,13 +60,12 @@ async function initialise(): Promise<AppConfig> {
 }
 
 const appConfig = initialise();
-const server =
-    appConfig.then((config) => awsServerlessExpress.createServer(createApp(config)))
-        .catch((error) => {
-              console.error("Failed to initialise server", error);
-              throw error;
-            }
-        );
+const server = appConfig
+  .then((config) => awsServerlessExpress.createServer(createApp(config)))
+  .catch((error) => {
+    console.error("Failed to initialise server", error);
+    throw error;
+  });
 
 export const handler: Handler = async (event, context) => {
   console.log("Lambda handler called, processing request.");
@@ -72,7 +74,7 @@ export const handler: Handler = async (event, context) => {
     await server,
     event,
     context,
-    "PROMISE"
+    "PROMISE",
   ).promise;
 };
 
